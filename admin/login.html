@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DITZZ ADMIN | TERMINAL ACCESS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../site-effects.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js" integrity="sha384-A97u3Qnt9GZHURO9YJZRe7VQgGUeFzcv6I1oIGnUTxQrCxnpQMwR0/G8F2zt9abZ" crossorigin="anonymous"></script>
+    <script src="../site-data.js"></script>
+    <style>
+        /* ===== CSS CUSTOM PROPERTIES ===== */
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #0d1117;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #16213e;
+            --accent-green: #00ff41;
+            --accent-cyan: #00ffff;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ff0040;
+            --accent-orange: #ffaa00;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888888;
+            --border-color: rgba(0,255,65,0.2);
+            --glow-green: 0 0 10px rgba(0,255,65,0.5), 0 0 20px rgba(0,255,65,0.3);
+            --glow-cyan: 0 0 10px rgba(0,255,255,0.5), 0 0 20px rgba(0,255,255,0.3);
+        }
+
+        /* ===== RESET & BASE ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            cursor: none;
+        }
+
+        /* ===== CUSTOM CURSOR ===== */
+        .cursor-dot {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99999;
+            transition: transform 0.1s ease;
+            box-shadow: var(--glow-green);
+        }
+
+        .cursor-ring {
+            position: fixed;
+            width: 36px;
+            height: 36px;
+            border: 2px solid rgba(0,255,65,0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99998;
+            transition: transform 0.15s ease, width 0.2s, height 0.2s, border-color 0.2s;
+        }
+
+        .cursor-ring.hover {
+            width: 50px;
+            height: 50px;
+            border-color: var(--accent-cyan);
+        }
+
+        /* ===== SCANLINE OVERLAY ===== */
+        .scanline-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9998;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.08) 2px,
+                rgba(0,0,0,0.08) 4px
+            );
+        }
+
+        .scanline-moving {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to bottom, transparent, rgba(0,255,65,0.12), transparent);
+            z-index: 9997;
+            animation: scanlineMove 4s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanlineMove {
+            0% { top: -4px; }
+            100% { top: 100vh; }
+        }
+
+        /* ===== MATRIX CANVAS ===== */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* ===== VIGNETTE OVERLAY ===== */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%);
+        }
+
+        /* ===== GRID OVERLAY ===== */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image:
+                linear-gradient(var(--accent-green) 1px, transparent 1px),
+                linear-gradient(90deg, var(--accent-green) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* ===== LOGIN CONTAINER ===== */
+        .login-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            padding: 20px;
+        }
+
+        .terminal-window {
+            width: 100%;
+            max-width: 560px;
+            background: rgba(10, 10, 10, 0.92);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow:
+                0 0 30px rgba(0,255,65,0.1),
+                0 0 60px rgba(0,255,65,0.05),
+                inset 0 0 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            animation: terminalAppear 0.8s ease forwards;
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        @keyframes terminalAppear {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* ===== TERMINAL TITLE BAR ===== */
+        .terminal-title-bar {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(13, 17, 23, 0.95);
+            border-bottom: 1px solid var(--border-color);
+            gap: 8px;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 7px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .terminal-dot.red { background: #ff5f57; box-shadow: 0 0 6px rgba(255,95,87,0.5); }
+        .terminal-dot.yellow { background: #febc2e; box-shadow: 0 0 6px rgba(254,188,46,0.5); }
+        .terminal-dot.green { background: #28c840; box-shadow: 0 0 6px rgba(40,200,64,0.5); }
+
+        .terminal-dot:hover {
+            transform: scale(1.2);
+        }
+
+        .terminal-title-text {
+            flex: 1;
+            text-align: center;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+        }
+
+        .terminal-title-icon {
+            color: var(--accent-green);
+            font-size: 14px;
+            animation: pulse 2s ease infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ===== TERMINAL BODY ===== */
+        .terminal-body {
+            padding: 30px 28px;
+        }
+
+        /* ===== ASCII ART LOGO ===== */
+        .ascii-logo {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            line-height: 1.2;
+            color: var(--accent-green);
+            text-align: center;
+            margin-bottom: 20px;
+            white-space: pre;
+            text-shadow: 0 0 8px rgba(0,255,65,0.4);
+            animation: glowPulse 3s ease infinite;
+            overflow-x: auto;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { text-shadow: 0 0 8px rgba(0,255,65,0.4); }
+            50% { text-shadow: 0 0 16px rgba(0,255,65,0.7), 0 0 30px rgba(0,255,65,0.3); }
+        }
+
+        /* ===== SYSTEM MESSAGE ===== */
+        .system-messages {
+            margin-bottom: 24px;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .system-line {
+            color: var(--text-secondary);
+            opacity: 0;
+            animation: typeLine 0.3s ease forwards;
+        }
+
+        .system-line.highlight {
+            color: var(--accent-green);
+            text-shadow: 0 0 8px rgba(0,255,65,0.3);
+        }
+
+        .system-line.warning {
+            color: var(--accent-orange);
+            text-shadow: 0 0 8px rgba(255,170,0,0.3);
+        }
+
+        .system-line:nth-child(1) { animation-delay: 0.3s; }
+        .system-line:nth-child(2) { animation-delay: 0.6s; }
+        .system-line:nth-child(3) { animation-delay: 0.9s; }
+        .system-line:nth-child(4) { animation-delay: 1.2s; }
+        .system-line:nth-child(5) { animation-delay: 1.5s; }
+        .system-line:nth-child(6) { animation-delay: 1.8s; }
+
+        @keyframes typeLine {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .blink-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background: var(--accent-green);
+            margin-left: 2px;
+            animation: blink 0.8s step-end infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* ===== FORM STYLES ===== */
+        .login-form {
+            opacity: 0;
+            animation: fadeIn 0.5s ease 2.2s forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 12px;
+            color: var(--accent-green);
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0 12px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 10px rgba(0,255,65,0.2);
+        }
+
+        .input-prefix {
+            color: var(--accent-green);
+            font-size: 14px;
+            margin-right: 8px;
+            user-select: none;
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            padding: 12px 0;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper input::placeholder {
+            color: rgba(136,136,136,0.5);
+        }
+
+        .input-wrapper input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 1000px rgba(0,0,0,0.5) inset;
+            -webkit-text-fill-color: var(--text-primary);
+        }
+
+        .input-icon {
+            color: var(--text-secondary);
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .input-wrapper:focus-within .input-icon {
+            color: var(--accent-green);
+        }
+
+        .password-toggle {
+            cursor: pointer;
+            padding: 4px;
+            color: var(--text-secondary);
+            transition: color 0.3s ease;
+            background: none;
+            border: none;
+            font-size: 14px;
+        }
+
+        .password-toggle:hover {
+            color: var(--accent-green);
+        }
+
+        /* ===== LOGIN BUTTON ===== */
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            cursor: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,65,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:hover {
+            background: rgba(0,255,65,0.1);
+            box-shadow: var(--glow-green);
+            text-shadow: 0 0 8px rgba(0,255,65,0.5);
+        }
+
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+
+        .login-btn.loading {
+            pointer-events: none;
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        .login-btn.success {
+            border-color: var(--accent-green);
+            background: rgba(0,255,65,0.15);
+            color: var(--accent-green);
+        }
+
+        .login-btn.error {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        /* ===== STATUS MESSAGE ===== */
+        .status-message {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            min-height: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .status-message.error {
+            color: var(--accent-red);
+            text-shadow: 0 0 10px rgba(255,0,64,0.5);
+            animation: flashRed 0.5s ease;
+        }
+
+        .status-message.success {
+            color: var(--accent-green);
+            text-shadow: 0 0 10px rgba(0,255,65,0.5);
+            animation: flashGreen 0.5s ease;
+        }
+
+        @keyframes flashRed {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        @keyframes flashGreen {
+            0% { opacity: 0; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* ===== ACCESS FLASH ===== */
+        .access-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .access-flash.denied {
+            background: rgba(255,0,64,0.15);
+            animation: flashOverlay 0.6s ease;
+        }
+
+        .access-flash.granted {
+            background: rgba(0,255,65,0.15);
+            animation: flashOverlay 0.8s ease;
+        }
+
+        @keyframes flashOverlay {
+            0% { opacity: 0; }
+            30% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* ===== FOOTER LINKS ===== */
+        .terminal-footer {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid rgba(0,255,65,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .terminal-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 1px;
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+            cursor: none;
+        }
+
+        .terminal-link:hover {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 8px rgba(0,255,255,0.4);
+        }
+
+        .terminal-link i {
+            margin-right: 4px;
+        }
+
+        /* ===== FORGOT PASSWORD POPUP ===== */
+        .forgot-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .forgot-popup.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .forgot-popup-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+        }
+
+        .forgot-popup-content {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .forgot-popup.active .forgot-popup-content {
+            transform: scale(1);
+        }
+
+        .forgot-popup-content i {
+            font-size: 36px;
+            color: var(--accent-orange);
+            margin-bottom: 16px;
+        }
+
+        .forgot-popup-content h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: var(--accent-orange);
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .forgot-popup-content p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .forgot-popup-close {
+            padding: 8px 24px;
+            background: transparent;
+            border: 1px solid var(--accent-orange);
+            color: var(--accent-orange);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 2px;
+            cursor: none;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .forgot-popup-close:hover {
+            background: rgba(255,170,0,0.1);
+            box-shadow: 0 0 10px rgba(255,170,0,0.3);
+        }
+
+        /* ===== INITIALIZING OVERLAY ===== */
+        .init-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease;
+        }
+
+        .init-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .init-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            color: var(--accent-green);
+            letter-spacing: 4px;
+            text-shadow: var(--glow-green);
+            margin-bottom: 30px;
+        }
+
+        .init-progress-bar {
+            width: 300px;
+            height: 3px;
+            background: rgba(0,255,65,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .init-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent-green);
+            border-radius: 2px;
+            box-shadow: var(--glow-green);
+            transition: width 0.1s linear;
+        }
+
+        .init-percent {
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+        }
+
+        .init-log {
+            margin-top: 20px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            max-width: 400px;
+            text-align: left;
+        }
+
+        .init-log-line {
+            opacity: 0;
+            margin-bottom: 4px;
+        }
+
+        .init-log-line.show {
+            animation: fadeInLine 0.2s ease forwards;
+        }
+
+        @keyframes fadeInLine {
+            to { opacity: 0.7; }
+        }
+
+        /* ===== GLITCH EFFECT ===== */
+        .glitch {
+            position: relative;
+        }
+
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .glitch::before {
+            color: var(--accent-cyan);
+            animation: glitch1 3s infinite linear alternate-reverse;
+            clip-path: inset(0 0 70% 0);
+        }
+
+        .glitch::after {
+            color: var(--accent-red);
+            animation: glitch2 2.5s infinite linear alternate-reverse;
+            clip-path: inset(70% 0 0 0);
+        }
+
+        @keyframes glitch1 {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-3px, 1px); }
+            94% { transform: translate(3px, -1px); }
+            96% { transform: translate(-2px, 2px); }
+            98% { transform: translate(2px, -2px); }
+        }
+
+        @keyframes glitch2 {
+            0%, 88%, 100% { transform: translate(0); }
+            90% { transform: translate(3px, 2px); }
+            93% { transform: translate(-3px, -1px); }
+            96% { transform: translate(2px, 1px); }
+            99% { transform: translate(-2px, -2px); }
+        }
+
+        /* ===== PARTICLES ===== */
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            opacity: 0;
+            animation: floatParticle linear infinite;
+        }
+
+        @keyframes floatParticle {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .terminal-body {
+                padding: 20px 16px;
+            }
+
+            .ascii-logo {
+                font-size: 7px;
+            }
+
+            .terminal-footer {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .init-progress-bar {
+                width: 220px;
+            }
+
+            .input-wrapper input {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .ascii-logo {
+                font-size: 5.5px;
+            }
+
+            .terminal-title-text {
+                font-size: 10px;
+                letter-spacing: 1px;
+            }
+        }
+
+        /* ===== SECURITY BADGE ===== */
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            border: 1px solid rgba(0,255,65,0.1);
+            border-radius: 20px;
+            background: rgba(0,255,65,0.03);
+        }
+
+        .security-badge i {
+            color: var(--accent-green);
+            font-size: 12px;
+            animation: pulse 2s ease infinite;
+        }
+
+        .security-badge span {
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ===== CONNECTION STATUS ===== */
+        .connection-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 50;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .connection-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1.5s ease infinite;
+            box-shadow: 0 0 6px rgba(0,255,65,0.5);
+        }
+
+        /* ===== VERSION INFO ===== */
+        .version-info {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            font-size: 10px;
+            color: rgba(136,136,136,0.4);
+            letter-spacing: 1px;
+            text-align: right;
+        }
+
+        /* ===== KEY INDICATOR ===== */
+        .key-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            opacity: 0;
+            animation: fadeIn 0.5s ease 2.5s forwards;
+        }
+
+        .key-indicator kbd {
+            padding: 2px 6px;
+            background: rgba(0,255,65,0.08);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            font-size: 10px;
+            color: var(--accent-green);
+        }
+
+        /* ===== ATTEMPTS COUNTER ===== */
+        .attempts-counter {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .attempts-counter.visible {
+            opacity: 1;
+        }
+
+        .attempts-counter .count {
+            color: var(--accent-red);
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <!-- Scanline Overlays -->
+    <div class="scanline-overlay"></div>
+    <div class="scanline-moving"></div>
+
+    <!-- Matrix Rain Canvas -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- Vignette -->
+    <div class="vignette"></div>
+
+    <!-- Grid Overlay -->
+    <div class="grid-overlay"></div>
+
+    <!-- Floating Particles -->
+    <div class="floating-particles" id="particles"></div>
+
+    <!-- Access Flash -->
+    <div class="access-flash" id="accessFlash"></div>
+
+    <!-- Forgot Password Popup -->
+    <div class="forgot-popup" id="forgotPopup">
+        <div class="forgot-popup-backdrop" onclick="closeForgotPopup()"></div>
+        <div class="forgot-popup-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>PASSWORD RECOVERY</h3>
+            <p>Recovery email is disabled for internal Admin usernames.<br><br>
+               <span style="color:var(--accent-orange);">CONTACT ANOTHER ADMIN</span><br><br>
+               Another Admin can set a new password from the CPanel account manager. For the first account, use Supabase Authentication.</p>
+            <button class="forgot-popup-close" onclick="closeForgotPopup()">[UNDERSTOOD]</button>
+        </div>
+    </div>
+
+    <!-- Initializing Overlay -->
+    <div class="init-overlay" id="initOverlay">
+        <div class="init-text" id="initText">INITIALIZING CONTROL PANEL...</div>
+        <div class="init-progress-bar">
+            <div class="init-progress-fill" id="initProgress"></div>
+        </div>
+        <div class="init-percent" id="initPercent">0%</div>
+        <div class="init-log" id="initLog">
+            <div class="init-log-line" id="log1">[SYS] Loading kernel modules...</div>
+            <div class="init-log-line" id="log2">[SYS] Establishing secure connection...</div>
+            <div class="init-log-line" id="log3">[SYS] Decrypting admin session...</div>
+            <div class="init-log-line" id="log4">[SYS] Loading dashboard components...</div>
+            <div class="init-log-line" id="log5">[SYS] Rendering interface...</div>
+            <div class="init-log-line" id="log6">[OK ] All systems operational</div>
+        </div>
+    </div>
+
+    <!-- Login Wrapper -->
+    <div class="login-wrapper">
+        <div class="terminal-window">
+            <!-- Title Bar -->
+            <div class="terminal-title-bar">
+                <div class="terminal-dots">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot yellow"></div>
+                    <div class="terminal-dot green"></div>
+                </div>
+                <div class="terminal-title-text glitch" data-text="DITZZ_ADMIN_TERMINAL">DITZZ_ADMIN_TERMINAL</div>
+                <div class="terminal-title-icon"><i class="fas fa-shield-halved"></i></div>
+            </div>
+
+            <!-- Terminal Body -->
+            <div class="terminal-body">
+                <!-- ASCII Logo -->
+                <div class="ascii-logo" id="asciiLogo">
+ ██████╗  ██╗ ████████╗ ███████╗ ███████╗
+ ██╔══██╗ ██║ ╚══██╔══╝ ╚══███╔╝ ╚══███╔╝
+ ██║  ██║ ██║    ██║      ███╔╝    ███╔╝
+ ██║  ██║ ██║    ██║     ███╔╝    ███╔╝
+ ██████╔╝ ██║    ██║    ███████╗ ███████╗
+ ╚═════╝  ╚═╝    ╚═╝    ╚══════╝ ╚══════╝
+        ═══ N E W   E R A ═══
+                </div>
+
+                <!-- Security Badge -->
+                <div class="security-badge">
+                    <i class="fas fa-lock"></i>
+                    <span>ENCRYPTED CONNECTION ESTABLISHED</span>
+                </div>
+
+                <!-- System Messages -->
+                <div class="system-messages">
+                    <div class="system-line">[SYSTEM] Connecting to DITZZ mainframe...</div>
+                    <div class="system-line highlight">[OK] Connection established</div>
+                    <div class="system-line">[SYSTEM] Protocol: TLS 1.3 | AES-256-GCM</div>
+                    <div class="system-line">[SYSTEM] Node: DITZZ-PROD-01</div>
+                    <div class="system-line warning">[WARN] Authentication required to proceed</div>
+                    <div class="system-line highlight">[SYSTEM] AUTHENTICATION REQUIRED<span class="blink-cursor"></span></div>
+                </div>
+
+                <!-- Login Form -->
+                <form class="login-form" id="loginForm" autocomplete="off">
+                    <div class="input-group">
+                        <label class="input-label">> ENTER CREDENTIALS</label>
+                        <div class="input-wrapper">
+                            <span class="input-prefix">$</span>
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="username" placeholder="username" autocomplete="off" spellcheck="false" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <div class="input-wrapper">
+                            <span class="input-prefix">$</span>
+                            <i class="fas fa-key input-icon"></i>
+                            <input type="password" id="password" placeholder="password" autocomplete="off" required>
+                            <button type="button" class="password-toggle" id="passwordToggle" onclick="togglePassword()">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="key-indicator">
+                        <span>Press</span> <kbd>ENTER</kbd> <span>to authenticate</span>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="loginBtn">[ AUTHENTICATE ]</button>
+
+                    <div class="status-message" id="statusMessage"></div>
+                    <div class="status-message" id="databaseConnectionStatus" role="status">CONNECTING TO SUPABASE...</div>
+                    <div class="attempts-counter" id="attemptsCounter"></div>
+                </form>
+
+                <!-- Footer -->
+                <div class="terminal-footer">
+                    <a href="#" class="terminal-link" onclick="openForgotPopup(); return false;">
+                        <i class="fas fa-question-circle"></i> FORGOT PASSWORD
+                    </a>
+                    <a href="../home.html" class="terminal-link">
+                        <i class="fas fa-arrow-left"></i> BACK TO SITE
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Info -->
+    <div class="connection-info">
+        <span><span class="connection-dot"></span>SECURE_TUNNEL: ACTIVE</span>
+        <span style="margin-left:12px;font-size:10px;opacity:0.5;" id="clientIP">CLIENT: 192.168.x.x</span>
+    </div>
+
+    <!-- Version Info -->
+    <div class="version-info">
+        DITZZ ADMIN TERMINAL v3.2.1<br>
+        &copy; 2024 DITZZ NEW ERA
+    </div>
+
+    <script src="../site-sounds.js"></script>
+    <script>
+        /* ===== CUSTOM CURSOR ===== */
+        const cursorDot = document.getElementById('cursorDot');
+        const cursorRing = document.getElementById('cursorRing');
+        let mouseX = 0, mouseY = 0;
+        let ringX = 0, ringY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorDot.style.left = mouseX - 4 + 'px';
+            cursorDot.style.top = mouseY - 4 + 'px';
+        });
+
+        function animateRing() {
+            ringX += (mouseX - ringX) * 0.15;
+            ringY += (mouseY - ringY) * 0.15;
+            cursorRing.style.left = ringX - 18 + 'px';
+            cursorRing.style.top = ringY - 18 + 'px';
+            requestAnimationFrame(animateRing);
+        }
+        animateRing();
+
+        document.querySelectorAll('a, button, input, .terminal-dot').forEach(el => {
+            el.addEventListener('mouseenter', () => cursorRing.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursorRing.classList.remove('hover'));
+        });
+
+        /* ===== MATRIX RAIN ===== */
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*()_+-=[]{}|;:,.<>?/~`ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ';
+        const fontSize = 14;
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = [];
+
+        function initDrops() {
+            columns = Math.floor(canvas.width / fontSize);
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = Math.random() * -100;
+            }
+        }
+        initDrops();
+        window.addEventListener('resize', initDrops);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.06)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < drops.length; i++) {
+                const char = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                const y = drops[i] * fontSize;
+
+                // Head character (brighter)
+                if (y > 0 && y < canvas.height) {
+                    ctx.fillStyle = 'rgba(0, 255, 65, 0.9)';
+                    ctx.font = fontSize + 'px Share Tech Mono';
+                    ctx.fillText(char, i * fontSize, y);
+
+                    // Trail characters
+                    ctx.fillStyle = 'rgba(0, 255, 65, 0.3)';
+                    if (y - fontSize > 0) {
+                        const trailChar = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+                        ctx.fillText(trailChar, i * fontSize, y - fontSize);
+                    }
+                }
+
+                if (y > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+            requestAnimationFrame(drawMatrix);
+        }
+        drawMatrix();
+
+        /* ===== FLOATING PARTICLES ===== */
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (Math.random() * 8 + 6) + 's';
+            particle.style.animationDelay = (Math.random() * 5) + 's';
+            particle.style.width = (Math.random() * 3 + 1) + 'px';
+            particle.style.height = particle.style.width;
+            particlesContainer.appendChild(particle);
+        }
+
+        document.getElementById('clientIP').textContent = 'CLIENT: PRIVATE SESSION';
+
+        /* ===== PASSWORD TOGGLE ===== */
+        function togglePassword() {
+            const pwField = document.getElementById('password');
+            const icon = document.querySelector('#passwordToggle i');
+            if (pwField.type === 'password') {
+                pwField.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                pwField.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        /* ===== FORGOT PASSWORD ===== */
+        function openForgotPopup() {
+            document.getElementById('forgotPopup').classList.add('active');
+        }
+
+        function closeForgotPopup() {
+            document.getElementById('forgotPopup').classList.remove('active');
+        }
+
+        /* ===== LOGIN LOGIC ===== */
+        let loginAttempts = 0;
+        const MAX_ATTEMPTS = 5;
+
+        document.getElementById('loginForm').addEventListener('invalid', () => {
+            if (window.DitzzSounds) window.DitzzSounds.play('error', 2000);
+        }, true);
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const statusMsg = document.getElementById('statusMessage');
+            const attemptsDiv = document.getElementById('attemptsCounter');
+            const accessFlash = document.getElementById('accessFlash');
+
+            if (loginAttempts >= MAX_ATTEMPTS) {
+                statusMsg.textContent = 'SYSTEM LOCKED - TOO MANY ATTEMPTS';
+                statusMsg.className = 'status-message error';
+                if (window.DitzzSounds) window.DitzzSounds.play('error', 2500);
+                return;
+            }
+
+            // Loading state
+            loginBtn.classList.add('loading');
+            loginBtn.textContent = 'AUTHENTICATING';
+            statusMsg.textContent = '';
+            statusMsg.className = 'status-message';
+
+            let dotCount = 0;
+            const dotInterval = setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                loginBtn.textContent = 'AUTHENTICATING' + '.'.repeat(dotCount);
+            }, 300);
+
+            // Simulate processing delay
+            setTimeout(async () => {
+                clearInterval(dotInterval);
+                loginBtn.classList.remove('loading');
+
+                let matchedUser = null;
+                let credentialError = '';
+                try {
+                    await window.DitzzData.ready;
+                    if (!window.DitzzData.configured) {
+                        throw new Error('Supabase belum terhubung. Admin belum dapat masuk dengan aman.');
+                    }
+                    matchedUser = await window.DitzzData.signIn(username, password);
+                } catch (error) {
+                    credentialError = error.message || 'Kredensial tidak dapat diverifikasi.';
+                }
+
+                if (matchedUser) {
+                    // Success
+                    loginBtn.classList.add('success');
+                    loginBtn.textContent = '[ ACCESS GRANTED ]';
+                    statusMsg.textContent = `> ACCESS GRANTED - WELCOME, ${(matchedUser.role || 'admin').toUpperCase()}`;
+                    statusMsg.className = 'status-message success';
+
+                    accessFlash.className = 'access-flash granted';
+                    setTimeout(() => { accessFlash.className = 'access-flash'; }, 800);
+
+                    // Store session
+                    sessionStorage.setItem('ditzz_admin_auth', 'true');
+                    sessionStorage.setItem('ditzz_admin_user', matchedUser.username);
+                    sessionStorage.setItem('ditzz_admin_role', matchedUser.role || 'admin');
+                    sessionStorage.setItem('ditzz_admin_id', matchedUser.id);
+                    sessionStorage.setItem('ditzz_admin_login_time', new Date().toISOString());
+
+                    // Show init overlay
+                    setTimeout(() => {
+                        showInitOverlay();
+                    }, 1000);
+                } else {
+                    // Failed
+                    const backendUnavailable = !window.DitzzData.configured;
+                    if (!backendUnavailable) loginAttempts++;
+                    loginBtn.classList.add('error');
+                    loginBtn.textContent = '[ ACCESS DENIED ]';
+                    statusMsg.textContent = credentialError || '> ACCESS DENIED - INVALID CREDENTIALS';
+                    statusMsg.className = 'status-message error';
+                    if (window.DitzzSounds) window.DitzzSounds.play('error', 2500);
+
+                    accessFlash.className = 'access-flash denied';
+                    setTimeout(() => { accessFlash.className = 'access-flash'; }, 600);
+
+                    if (!backendUnavailable) {
+                        attemptsDiv.classList.add('visible');
+                        attemptsDiv.innerHTML = 'ATTEMPTS: <span class="count">' + loginAttempts + '</span>/' + MAX_ATTEMPTS;
+                    }
+
+                    // Reset button after delay
+                    setTimeout(() => {
+                        loginBtn.classList.remove('error');
+                        loginBtn.textContent = '[ AUTHENTICATE ]';
+                    }, 2000);
+                }
+            }, 1800);
+        });
+
+        /* ===== INIT OVERLAY ANIMATION ===== */
+        function showInitOverlay() {
+            const overlay = document.getElementById('initOverlay');
+            const progress = document.getElementById('initProgress');
+            const percent = document.getElementById('initPercent');
+
+            overlay.classList.add('active');
+
+            let currentProgress = 0;
+            const logs = ['log1', 'log2', 'log3', 'log4', 'log5', 'log6'];
+            let logIndex = 0;
+
+            const progressInterval = setInterval(() => {
+                currentProgress += Math.random() * 8 + 2;
+                if (currentProgress > 100) currentProgress = 100;
+
+                progress.style.width = currentProgress + '%';
+                percent.textContent = Math.floor(currentProgress) + '%';
+
+                // Show log lines at certain progress points
+                if (currentProgress > (logIndex + 1) * 15 && logIndex < logs.length) {
+                    document.getElementById(logs[logIndex]).classList.add('show');
+                    logIndex++;
+                }
+
+                if (currentProgress >= 100) {
+                    clearInterval(progressInterval);
+                    percent.textContent = '100%';
+                    document.getElementById('initText').textContent = 'SYSTEM READY';
+
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 800);
+                }
+            }, 150);
+        }
+
+        /* ===== KEYBOARD SHORTCUT ===== */
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeForgotPopup();
+            }
+        });
+
+        /* ===== FOCUS FIRST INPUT ON LOAD ===== */
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('username').focus();
+            }, 2500);
+        });
+
+        /* ===== REDIRECT IF ALREADY AUTHENTICATED ===== */
+        if (sessionStorage.getItem('ditzz_admin_auth') === 'true') {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

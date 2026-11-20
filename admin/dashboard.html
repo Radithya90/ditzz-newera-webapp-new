@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DITZZ NEWERA // MAINFRAME CPANEL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../site-effects.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js" integrity="sha384-A97u3Qnt9GZHURO9YJZRe7VQgGUeFzcv6I1oIGnUTxQrCxnpQMwR0/G8F2zt9abZ" crossorigin="anonymous"></script>
+    <script src="../site-data.js"></script>
+    <style>
+        :root {
+            --bg-primary: #08090c;
+            --bg-secondary: #0d1117;
+            --bg-card: #131722;
+            --bg-card-hover: #192033;
+            --accent-green: #00ff41;
+            --accent-cyan: #00ffff;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ff0040;
+            --accent-orange: #ffaa00;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --border-color: rgba(0, 255, 65, 0.18);
+            --border-dim: rgba(255, 255, 255, 0.08);
+            --glow-green: 0 0 10px rgba(0, 255, 65, 0.4), 0 0 20px rgba(0, 255, 65, 0.2);
+            --glow-cyan: 0 0 10px rgba(0, 255, 255, 0.4), 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+            pointer-events: none; z-index: 9999;
+        }
+
+        /* Layout Structure */
+        .cpanel-container {
+            display: flex; width: 100vw; height: 100vh; position: relative;
+        }
+
+        /* Sidebar */
+        .cpanel-sidebar {
+            width: 260px; min-width: 260px; height: 100%;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+            z-index: 100; transition: all 0.3s ease;
+            box-shadow: 10px 0 34px rgba(0, 0, 0, .28);
+        }
+        .cpanel-sidebar.collapsed { width: 70px; min-width: 70px; }
+
+        .sidebar-brand {
+            padding: 24px 20px; border-bottom: 1px solid var(--border-dim);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .brand-title {
+            font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 900;
+            color: var(--accent-green); text-shadow: var(--glow-green);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .brand-sub {
+            font-size: 0.65rem; color: var(--accent-cyan); letter-spacing: 2px;
+        }
+        .sidebar-toggle-btn {
+            background: transparent; border: 1px solid var(--border-color);
+            color: var(--accent-green); width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .sidebar-toggle-btn:hover { background: rgba(0,255,65,0.1); }
+
+        .sidebar-menu {
+            flex: 1; overflow-y: auto; padding: 15px 0; list-style: none;
+        }
+        .menu-cat {
+            font-size: 0.65rem; color: var(--text-secondary);
+            padding: 12px 20px 6px; letter-spacing: 2px;
+        }
+        .cpanel-sidebar.collapsed .menu-cat { display: none; }
+
+        .menu-item {
+            padding: 12px 20px; display: flex; align-items: center; gap: 14px;
+            color: var(--text-secondary); text-decoration: none; cursor: pointer;
+            border-left: 3px solid transparent; transition: all 0.25s;
+            white-space: nowrap; font-size: 0.85rem;
+        }
+        .menu-item i { width: 20px; font-size: 1rem; text-align: center; }
+        .menu-item:hover, .menu-item.active {
+            color: var(--accent-green); background: rgba(0, 255, 65, 0.05);
+            border-left-color: var(--accent-green);
+            text-shadow: 0 0 8px rgba(0,255,65,0.4);
+        }
+        .menu-item.preview-btn {
+            color: var(--accent-cyan);
+        }
+        .menu-item.preview-btn:hover, .menu-item.preview-btn.active {
+            color: var(--accent-cyan); background: rgba(0, 255, 255, 0.08);
+            border-left-color: var(--accent-cyan);
+            text-shadow: 0 0 8px rgba(0,255,255,0.4);
+        }
+
+        .sidebar-footer {
+            padding: 18px 20px; border-top: 1px solid var(--border-dim);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .admin-badge {
+            display: flex; align-items: center; gap: 10px; overflow: hidden;
+        }
+        .admin-avatar {
+            width: 32px; height: 32px; border-radius: 4px;
+            background: rgba(0,255,65,0.1); border: 1px solid var(--accent-green);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent-green); font-weight: bold; font-size: 0.8rem; overflow: hidden;
+        }
+        .admin-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-photo-preview {
+            width: 76px; height: 76px; border: 1px solid var(--accent-cyan); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            background: rgba(0,255,255,.08); color: var(--accent-cyan); font: 700 1rem Orbitron,sans-serif;
+        }
+        .profile-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .account-photo-thumb {
+            width: 30px; height: 30px; margin-right: 8px; border: 1px solid var(--border-color);
+            border-radius: 50%; object-fit: cover; vertical-align: middle;
+        }
+        .admin-name { font-size: 0.8rem; color: var(--text-primary); }
+        .admin-role { font-size: 0.65rem; color: var(--accent-green); }
+        .logout-btn {
+            background: transparent; border: none; color: var(--accent-red);
+            font-size: 1.1rem; cursor: pointer; padding: 6px; transition: all 0.2s;
+        }
+        .logout-btn:hover { transform: scale(1.15); text-shadow: 0 0 10px var(--accent-red); }
+
+        /* Main Workspace */
+        .cpanel-main {
+            flex: 1; height: 100%; display: flex; flex-direction: column; overflow: hidden;
+            background: radial-gradient(circle at top right, rgba(0,255,65,0.03), transparent 60%);
+        }
+
+        /* Topbar */
+        .cpanel-topbar {
+            height: 65px; border-bottom: 1px solid var(--border-dim);
+            background: rgba(13, 17, 23, 0.7); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px; z-index: 90;
+        }
+        .topbar-status {
+            display: flex; align-items: center; gap: 20px; font-size: 0.8rem;
+        }
+        .status-pill {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 12px; background: rgba(0, 255, 65, 0.08);
+            border: 1px solid var(--border-color); border-radius: 20px;
+            color: var(--accent-green); font-size: 0.75rem;
+        }
+        .pulse-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green); animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
+
+        .topbar-actions {
+            display: flex; align-items: center; gap: 15px;
+        }
+        .action-btn {
+            background: rgba(26, 26, 46, 0.8); border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: 8px 16px; font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            transition: all 0.25s; text-decoration: none;
+        }
+        .action-btn:hover {
+            border-color: var(--accent-green); color: var(--accent-green);
+            box-shadow: var(--glow-green);
+        }
+        .action-btn.btn-save {
+            background: var(--accent-green); color: var(--bg-primary);
+            border-color: var(--accent-green); font-weight: bold;
+        }
+        .action-btn.btn-save:hover {
+            background: transparent; color: var(--accent-green);
+        }
+
+        /* Tab Content Area */
+        .content-scroll {
+            flex: 1; overflow-y: auto; padding: 30px;
+            scroll-behavior: smooth;
+        }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Real-Time Live Preview Pane */
+        #pane-preview {
+            height: calc(100vh - 65px); padding: 15px 30px; display: none; flex-direction: column;
+        }
+        #pane-preview.active { display: flex; }
+        .preview-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 10px 20px; margin-bottom: 15px; border-radius: 4px;
+        }
+        .preview-controls { display: flex; align-items: center; gap: 10px; }
+        .device-btn {
+            background: transparent; border: 1px solid var(--border-dim);
+            color: var(--text-secondary); padding: 6px 12px; cursor: pointer;
+            font-size: 0.8rem; display: flex; align-items: center; gap: 6px;
+            font-family: 'Share Tech Mono', monospace; transition: all 0.2s;
+        }
+        .device-btn:hover, .device-btn.active {
+            border-color: var(--accent-cyan); color: var(--accent-cyan);
+            background: rgba(0, 255, 255, 0.08);
+        }
+        .preview-url-select {
+            background: var(--bg-primary); border: 1px solid var(--border-color);
+            color: var(--accent-green); padding: 6px 12px; font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem; outline: none; cursor: pointer;
+        }
+        .preview-container {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);
+            overflow: hidden; position: relative; border-radius: 4px;
+        }
+        .preview-iframe-wrapper {
+            height: 100%; transition: width 0.3s ease; background: #000;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.15); border: 1px solid var(--border-color);
+        }
+        .preview-iframe {
+            width: 100%; height: 100%; border: none;
+        }
+
+        /* Cards & Grids */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 20px; position: relative; overflow: hidden; transition: all 0.3s;
+        }
+        .stat-card:hover {
+            border-color: var(--accent-green); transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.1);
+        }
+        .stat-card-title { font-size: 0.75rem; color: var(--text-secondary); letter-spacing: 2px; }
+        .stat-card-value {
+            font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 900;
+            color: var(--accent-green); margin: 8px 0; text-shadow: 0 0 10px rgba(0,255,65,0.3);
+        }
+        .stat-card-badge { font-size: 0.7rem; color: var(--accent-cyan); }
+        .stat-card-icon {
+            position: absolute; right: 20px; bottom: 20px; font-size: 2.2rem;
+            color: rgba(0, 255, 65, 0.08);
+        }
+
+        /* Forms & Inputs */
+        .card-panel {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            padding: 25px; margin-bottom: 25px; position: relative;
+            border-radius: 6px; box-shadow: inset 0 1px rgba(255,255,255,.025);
+            transition: border-color .25s ease, box-shadow .25s ease;
+        }
+        .card-panel:hover { border-color: rgba(0,255,255,.28); box-shadow: inset 0 1px rgba(255,255,255,.04), 0 8px 26px rgba(0,0,0,.18); }
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-dim);
+        }
+        .card-title {
+            font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--accent-green);
+            letter-spacing: 2px; display: flex; align-items: center; gap: 10px;
+        }
+        .form-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .form-group { margin-bottom: 18px; }
+        .form-label {
+            display: block; font-size: 0.75rem; color: var(--text-secondary);
+            margin-bottom: 8px; letter-spacing: 1px;
+        }
+        .form-label span { color: var(--accent-green); }
+        .form-input, .form-textarea, .form-select {
+            width: 100%; padding: 12px 14px; background: rgba(8, 9, 12, 0.8);
+            border: 1px solid var(--border-dim); color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600;
+            outline: none; transition: all 0.25s; border-radius: 2px;
+        }
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            border-color: var(--accent-green); box-shadow: 0 0 10px rgba(0,255,65,0.2);
+            background: rgba(13, 17, 23, 0.9);
+        }
+        .form-textarea { resize: vertical; min-height: 90px; }
+        .input-hint { font-size: 0.65rem; color: var(--text-secondary); margin-top: 5px; }
+
+        /* Tables */
+        .table-responsive { width: 100%; overflow-x: auto; }
+        .cyber-table {
+            width: 100%; border-collapse: collapse; text-align: left; font-size: 0.8rem;
+        }
+        .cyber-table th {
+            padding: 12px 16px; background: rgba(0,0,0,0.4);
+            border-bottom: 1px solid var(--border-color); color: var(--accent-green);
+            letter-spacing: 1.5px; font-size: 0.75rem;
+        }
+        .cyber-table td {
+            padding: 14px 16px; border-bottom: 1px solid var(--border-dim);
+            color: var(--text-primary);
+        }
+        .cyber-table tr:hover td { background: rgba(0, 255, 65, 0.03); }
+
+        .badge-status {
+            display: inline-block; padding: 4px 10px; font-size: 0.65rem;
+            border: 1px solid; border-radius: 2px; letter-spacing: 1px;
+        }
+        .badge-in { color: var(--accent-green); border-color: rgba(0,255,65,0.4); background: rgba(0,255,65,0.08); }
+        .badge-limited { color: var(--accent-orange); border-color: rgba(255,170,0,0.4); background: rgba(255,170,0,0.08); }
+        .badge-out { color: var(--accent-red); border-color: rgba(255,0,64,0.4); background: rgba(255,0,64,0.08); }
+
+        .btn-table {
+            background: transparent; border: 1px solid var(--border-dim);
+            color: var(--text-secondary); padding: 5px 10px; cursor: pointer;
+            font-size: 0.75rem; transition: all 0.2s;
+        }
+        .btn-table:hover { border-color: var(--accent-green); color: var(--accent-green); }
+        .btn-table.danger:hover { border-color: var(--accent-red); color: var(--accent-red); }
+
+        /* Modal CRUD */
+        .cpanel-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 10000;
+            display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .cpanel-modal.open { display: flex; }
+        .modal-box {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;
+            padding: 30px; box-shadow: 0 0 40px rgba(0, 255, 65, 0.2);
+            position: relative;
+        }
+
+        /* Toast Notifications */
+        .toast-box {
+            position: fixed; bottom: 30px; right: 30px; z-index: 20000;
+            padding: 14px 24px; background: var(--bg-card); border: 1px solid var(--accent-green);
+            color: var(--accent-green); font-size: 0.85rem; letter-spacing: 1px;
+            box-shadow: var(--glow-green); transform: translateY(100px); opacity: 0;
+            transition: all 0.3s ease; display: flex; align-items: center; gap: 10px;
+        }
+        .toast-box.show { transform: translateY(0); opacity: 1; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-green); }
+        .sidebar-backdrop, .mobile-menu-btn { display: none; }
+        @media (max-width: 900px) {
+            .cpanel-sidebar { width: 220px; min-width: 220px; }
+            .cpanel-topbar { padding: 0 16px; }
+            .content-scroll { padding: 20px; }
+            .form-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+            .preview-toolbar { align-items: stretch; flex-direction: column; gap: 8px; }
+            .preview-controls { flex-wrap: wrap; }
+            .preview-url-select { min-width: min(100%, 260px); }
+        }
+        @media (max-width: 700px) {
+            html, body { height: 100%; overflow: hidden; }
+            .cpanel-container { width: 100%; height: 100dvh; min-height: 100%; }
+            .cpanel-main { min-width: 0; width: 100%; }
+            .cpanel-sidebar { position: fixed; inset: 0 auto 0 0; width: min(300px, 85vw); min-width: 0; transform: translateX(-105%); box-shadow: 12px 0 35px rgba(0,0,0,.65); }
+            .cpanel-sidebar.mobile-open { transform: translateX(0); }
+            .cpanel-sidebar.collapsed { width: min(300px, 85vw); min-width: 0; }
+            .sidebar-backdrop.active { display: block; position: fixed; inset: 0; z-index: 99; width: 100%; height: 100%; border: 0; background: rgba(0,0,0,.62); }
+            .cpanel-topbar { min-height: 62px; height: auto; padding: 9px 10px; gap: 8px; }
+            .topbar-status { min-width: 0; flex-wrap: wrap; gap: 5px 8px; font-size: .68rem; }
+            .topbar-status .status-pill { padding: 4px 8px; font-size: .65rem; }
+            .topbar-actions { display: flex; gap: 6px; }
+            .topbar-actions .action-btn { min-height: 40px; padding: 8px; font-size: .65rem; }
+            .topbar-actions .action-btn:not(.btn-save) { display: none; }
+            .topbar-actions .action-btn.mobile-menu-btn { display: inline-flex; min-height: 40px; padding: 8px 10px; }
+            .content-scroll { padding: 13px 10px 24px; }
+            .card-panel { padding: 15px 12px; margin-bottom: 14px; }
+            .card-header { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+            .card-title { font-size: .78rem; line-height: 1.5; }
+            .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 15px; }
+            .stat-card { padding: 13px 10px; }
+            .stat-card-title { font-size: .62rem; letter-spacing: 1px; }
+            .stat-card-value { font-size: 1.35rem; }
+            .form-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+            .form-input, .form-select, .form-textarea { width: 100%; min-height: 44px; font-size: 16px; }
+            .form-textarea { min-height: 110px; }
+            .action-btn, .btn-table, .device-btn { min-height: 42px; }
+            .preview-toolbar { align-items: stretch; flex-direction: column; gap: 8px; padding: 10px; }
+            .preview-controls { flex-wrap: wrap; }
+            .preview-url-select { width: 100%; min-height: 42px; }
+            #pane-preview { height: calc(100dvh - 62px); padding: 10px; min-height: 0; }
+            .preview-container { min-height: 45vh; }
+            .cyber-table { min-width: 680px; }
+            .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .toast-box { left: 10px; right: 10px; bottom: 12px; justify-content: center; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <button class="sidebar-backdrop" id="sidebarBackdrop" aria-label="Close navigation"></button>
+
+    <div class="cpanel-container">
+        <!-- Sidebar Navigation -->
+        <aside class="cpanel-sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div>
+                    <div class="brand-title">DITZZ CPANEL</div>
+                    <div class="brand-sub">// NEWERA V3.7.1</div>
+                </div>
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-cat">OPERATIONS</li>
+                <li><a class="menu-item active" data-tab="dashboard"><i class="fas fa-terminal"></i> <span>Dashboard</span></a></li>
+                <li><a class="menu-item preview-btn" data-tab="preview"><i class="fas fa-desktop"></i> <span>Real-Time Preview</span></a></li>
+
+                <li class="menu-cat">AUDIO & FREQUENCY</li>
+                <li><a class="menu-item" data-tab="music"><i class="fas fa-music"></i> <span>Music Manager</span></a></li>
+
+                <li class="menu-cat">CONTENT & RULES</li>
+                <li><a class="menu-item" data-tab="content"><i class="fas fa-file-shield"></i> <span>Rules & Directives</span></a></li>
+
+                <li class="menu-cat">STORE & COMMERCE</li>
+                <li><a class="menu-item" data-tab="products"><i class="fas fa-box-open"></i> <span>Product Catalog</span></a></li>
+                <li><a class="menu-item" data-tab="orders"><i class="fas fa-receipt"></i> <span>Transactions</span></a></li>
+
+                <li class="menu-cat">COMMUNICATIONS</li>
+                <li><a class="menu-item" data-tab="messages"><i class="fas fa-satellite-dish"></i> <span>Transmissions</span></a></li>
+
+                <li class="menu-cat">MAINFRAME CONFIG</li>
+                <li><a class="menu-item" data-tab="database"><i class="fas fa-database"></i> <span>Database & Sync</span></a></li>
+                <li><a class="menu-item" data-tab="settings"><i class="fas fa-sliders-h"></i> <span>System Settings</span></a></li>
+                <li><a class="menu-item" data-tab="security"><i class="fas fa-user-shield"></i> <span>Security Center</span></a></li>
+                <li><a class="menu-item" data-tab="blocked-visitors"><i class="fas fa-user-slash"></i> <span>Visitor Terblokir</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="admin-badge">
+                    <div class="admin-avatar" id="adminAvatar">
+                        <span id="adminAvatarInitials">DZ</span>
+                        <img id="adminProfilePhoto" alt="" hidden>
+                    </div>
+                    <div>
+                        <div class="admin-name" id="adminUsername">admin</div>
+                        <div class="admin-role" id="adminRoleLabel">ADMIN</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logoutBtn" title="Terminate Session">
+                    <i class="fas fa-power-off"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="cpanel-main">
+            <!-- Top Navigation Bar -->
+            <header class="cpanel-topbar">
+                <div class="topbar-status">
+                    <div class="status-pill">
+                        <div class="pulse-dot"></div>
+                        <span>MAINFRAME: OPERATIONAL</span>
+                    </div>
+                    <span id="liveClock" style="color: var(--text-secondary); font-size: 0.75rem;">TIME: 00:00:00</span>
+                </div>
+                <div class="topbar-actions">
+                    <button class="action-btn mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation"><i class="fas fa-bars"></i></button>
+                    <a href="../home.html" target="_blank" class="action-btn">
+                        <i class="fas fa-external-link-alt"></i> OPEN SITE
+                    </a>
+                    <button class="action-btn btn-save" id="globalSaveBtn">
+                        <i class="fas fa-save"></i> DEPLOY CHANGES
+                    </button>
+                </div>
+            </header>
+
+            <!-- 1. Real-Time Live Preview Pane -->
+            <section class="tab-pane" id="pane-preview">
+                <div class="preview-toolbar">
+                    <div class="preview-controls">
+                        <span style="font-size: 0.75rem; color: var(--accent-cyan); letter-spacing: 2px;">
+                            <i class="fas fa-eye"></i> LIVE PREVIEW:
+                        </span>
+                        <select class="preview-url-select" id="previewUrlSelect">
+                            <option value="../home.html">Home Page (home.html)</option>
+                            <option value="../store.html">Store Page (store.html)</option>
+                            <option value="../about.html">About Page (about.html)</option>
+                            <option value="../contact.html">Contact Page (contact.html)</option>
+                            <option value="../updates.html">Updates Page (updates.html)</option>
+                            <option value="../events.html">Events Page (events.html)</option>
+                            <option value="../gallery.html">Gallery Page (gallery.html)</option>
+                            <option value="../faq.html">FAQ Page (faq.html)</option>
+                            <option value="../community.html">Visitor Lounge (community.html)</option>
+                            <option value="../guide.html">Field Guide (guide.html)</option>
+                            <option value="../index.html">Intro / Gateway (index.html)</option>
+                        </select>
+                        <button class="device-btn active" data-width="100%"><i class="fas fa-desktop"></i> Desktop</button>
+                        <button class="device-btn" data-width="768px"><i class="fas fa-tablet-alt"></i> Tablet</button>
+                        <button class="device-btn" data-width="380px"><i class="fas fa-mobile-alt"></i> Mobile</button>
+                    </div>
+                    <button class="action-btn" id="refreshPreviewBtn" style="padding: 5px 12px;">
+                        <i class="fas fa-sync-alt"></i> Reload Frame
+                    </button>
+                </div>
+                <div class="preview-container">
+                    <div class="preview-iframe-wrapper" id="previewIframeWrapper" style="width: 100%;">
+                        <iframe id="previewIframe" class="preview-iframe" src="../home.html?cpanelPreview=1"></iframe>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Content Area for Other Tabs -->
+            <div class="content-scroll" id="contentScroll">
+                <!-- 2. Dashboard Overview Pane -->
+                <section class="tab-pane active" id="pane-dashboard">
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-card-title">TOTAL REVENUE</div>
+                            <div class="stat-card-value" id="dashRev">Rp 48.500.000</div>
+                            <div class="stat-card-badge">+18.4% THIS CYCLE</div>
+                            <i class="fas fa-chart-line stat-card-icon"></i>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-title">TRANSACTIONS</div>
+                            <div class="stat-card-value" id="dashOrders">1,482</div>
+                            <div class="stat-card-badge">99.8% SUCCESS RATE</div>
+                            <i class="fas fa-receipt stat-card-icon"></i>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-title">ACTIVE PRODUCTS</div>
+                            <div class="stat-card-value" id="dashProducts">12</div>
+                            <div class="stat-card-badge">ALL ENCRYPTED</div>
+                            <i class="fas fa-box-open stat-card-icon"></i>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-title">NETWORK SIGNALS</div>
+                            <div class="stat-card-value">10,249</div>
+                            <div class="stat-card-badge">NODES SYNCHRONIZED</div>
+                            <i class="fas fa-network-wired stat-card-icon"></i>
+                        </div>
+                    </div>
+
+                    <!-- Quick System Overview -->
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-shield-alt"></i> MAINFRAME DIRECTIVES STATUS</div>
+                            <span style="font-size: 0.75rem; color: var(--accent-green);">SYSTEM ACTIVE</span>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: 15px;">
+                            Selamat datang di Mainframe Control Panel <span style="color: var(--accent-green);">DITZZ NEWERA</span>. Dari panel ini Anda memiliki kendali penuh atas musik intro, musik website, catatan peraturan/ketentuan siber, katalog produk jual-beli, transmisi masuk, dan real-time live preview website tanpa perlu reload manual.
+                        </p>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <button class="action-btn" onclick="switchTab('preview')"><i class="fas fa-eye"></i> Buka Real-Time Preview</button>
+                            <button class="action-btn" onclick="switchTab('music')"><i class="fas fa-music"></i> Ubah Musik YouTube</button>
+                            <button class="action-btn" onclick="switchTab('content')"><i class="fas fa-file-contract"></i> Edit Peraturan & Info Dev</button>
+                            <button class="action-btn" onclick="switchTab('products')"><i class="fas fa-cart-plus"></i> Kelola Produk Toko</button>
+                        </div>
+                    </div>
+
+                    <!-- Terminal Activity Stream -->
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-terminal"></i> LIVE EVENT LOGS</div>
+                            <span style="font-size: 0.7rem; color: var(--text-secondary);">REFRESH: REALTIME</span>
+                        </div>
+                        <div id="cpanelLogs" style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.8; max-height: 180px; overflow-y: auto;">
+                            <div><span style="color: var(--accent-green);">[SYS_OK]</span> Session established for root administrator 'admin'.</div>
+                            <div><span style="color: var(--accent-cyan);">[AUDIO_HUB]</span> Default audio stream synced: YouTube ID (tGv7CUutzqU) @ 24s.</div>
+                            <div><span style="color: var(--accent-green);">[GATEWAY]</span> Protocol agreement gatekeeper engaged (30-second handshake).</div>
+                            <div><span style="color: var(--accent-purple);">[DB_SYNC]</span> 12 digital products verified in local storage matrix.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Music & Audio Manager Pane -->
+                <section class="tab-pane" id="pane-music">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-music"></i> INTRO BACKGROUND MUSIC (YOUTUBE / AUDIO PLATFORM)</div>
+                            <span class="badge-status badge-in">UNMUTED · 100% VOLUME DEFAULT</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 20px;">
+                            Atur link musik pada halaman intro (index.html). Mendukung URL YouTube apapun, ID video, atau file audio. Volume otomatis disetel ke 100% tanpa iklan.
+                        </p>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label"><span>*</span> YOUTUBE URL / VIDEO ID INTRO:</label>
+                                <input type="text" class="form-input" id="cfgIntroMusicUrl" placeholder="https://youtu.be/tGv7CUutzqU?t=24" value="https://youtu.be/tGv7CUutzqU?t=24">
+                                <div class="input-hint">Contoh: https://youtu.be/tGv7CUutzqU atau ID tGv7CUutzqU</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">START TIME (DETIK):</label>
+                                <input type="number" class="form-input" id="cfgIntroStartTime" placeholder="24" value="24">
+                                <div class="input-hint">Detik mulai pemutaran (contoh: 24 detik)</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">DEFAULT VOLUME (%):</label>
+                                <input type="number" class="form-input" id="cfgIntroVolume" min="0" max="100" value="100">
+                                <div class="input-hint">Default 100% sesuai instruksi</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">TITLE LAGU INTRO:</label>
+                                <input type="text" class="form-input" id="cfgIntroTitle" value="PHONK / CYBER SYNTH - DITZZ THEME">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-headphones"></i> WEBSITE BACKGROUND MUSIC (MAIN SITE)</div>
+                            <span class="badge-status badge-in">VOLUME 100% · PERSISTENT HUD</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 20px;">
+                            Musik yang akan diputar di halaman utama (Home, Store, About, Contact). Pengguna dapat memilih untuk melanjutkan lagu intro atau menggunakan lagu berbeda dari playlist berikut.
+                        </p>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="cfgWebsiteMusicEnabled">STATUS MUSIK SELURUH WEBSITE:</label>
+                                <select class="form-select" id="cfgWebsiteMusicEnabled">
+                                    <option value="true">AKTIF — putar musik di halaman publik</option>
+                                    <option value="false">NONAKTIF — hentikan musik website</option>
+                                </select>
+                                <div class="input-hint">Admin atau Keamanan dapat mematikan musik kapan saja. Status diterapkan pada halaman yang sedang terbuka di browser ini.</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">ALTERNATIVE TRACK 1 (NAME & YOUTUBE ID):</label>
+                                <input type="text" class="form-input" id="cfgTrack1Name" value="CYBERPUNK NEON DRIVE" style="margin-bottom: 8px;">
+                                <input type="text" class="form-input" id="cfgTrack1Id" value="4xDzrJKXOOY" placeholder="YouTube Video ID">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">ALTERNATIVE TRACK 2 (NAME & YOUTUBE ID):</label>
+                                <input type="text" class="form-input" id="cfgTrack2Name" value="SYNTHWAVE HACKER PROTOCOL" style="margin-bottom: 8px;">
+                                <input type="text" class="form-input" id="cfgTrack2Id" value="79B5wX0hZ-0" placeholder="YouTube Video ID">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">ALTERNATIVE TRACK 3 (NAME & YOUTUBE ID):</label>
+                                <input type="text" class="form-input" id="cfgTrack3Name" value="DARK AMBIENT MAINFRAME" style="margin-bottom: 8px;">
+                                <input type="text" class="form-input" id="cfgTrack3Id" value="kJQP7kiw5Fk" placeholder="YouTube Video ID">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Rules & Directives Content Pane -->
+                <section class="tab-pane" id="pane-content">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-book"></i> CYBER PROTOCOLS (PERATURAN WEBSITE)</div>
+                            <span style="font-size: 0.75rem; color: var(--accent-cyan);">MUNCUL DI CATATAN GATEWAY</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 15px;">
+                            Teks peraturan ini akan ditampilkan pada pop-up modal gateway sebelum pengguna masuk ke website.
+                        </p>
+                        <div class="form-group">
+                            <label class="form-label"><span>*</span> KETENTUAN & PERATURAN SISTEM (PISAHKAN DENGAN BARIS BARU):</label>
+                            <textarea class="form-textarea" id="cfgRules" style="height: 140px;">
+1. Dilarang melakukan unauthorized brute-force, reverse engineering, atau eksploitasi berbahaya terhadap mainframe DITZZ NEWERA.
+2. Seluruh transaksi produk digital bersifat terenkripsi, terverifikasi otomatis, dan sah secara protokol siber.
+3. Hormati komunitas, privasi data anggota lain, dan integritas jaringan yang dibangun oleh DITZZ Syndicate.
+4. Garansi & Technical Support tersedia 24/7 melalui saluran resmi yang terdaftar pada sistem.</textarea>
+                        </div>
+                    </div>
+
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-bullseye"></i> MISSION OBJECTIVE (TUJUAN WEBSITE)</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><span>*</span> TUJUAN WEBSITE:</label>
+                            <textarea class="form-textarea" id="cfgPurpose" style="height: 100px;">
+DITZZ NEWERA didirikan untuk membangun ekosistem digital generasi baru bertema cyberpunk/hacker yang memadukan keamanan siber tingkat tinggi, estetika futuristik 3D modern, dan marketplace produk digital premium (tools, script otomatisasi, security suite, aset digital eksklusif) tanpa perantara yang rumit.</textarea>
+                        </div>
+                    </div>
+
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-user-secret"></i> DEVELOPER & ARCHITECT INTEL</div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">LEAD DEVELOPER / OWNER NAME:</label>
+                                <input type="text" class="form-input" id="cfgDevName" value="DITZZ">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">ROLE / CODENAME:</label>
+                                <input type="text" class="form-input" id="cfgDevRole" value="FOUNDER & LEAD SYSTEM ARCHITECT">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">DEV BIOGRAPHY / INTEL STATEMENT:</label>
+                            <textarea class="form-textarea" id="cfgDevBio" style="height: 90px;">
+DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh sistem DITZZ NEWERA. Didedikasikan untuk menciptakan platform yang tidak biasa, berjiwa siber, dan mengutamakan performa tanpa kompromi.</textarea>
+                        </div>
+                    </div>
+
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-hand-sparkles"></i> SAMBUTAN PENGUNJUNG</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cfgWelcomeTitle">JUDUL SAMBUTAN:</label>
+                            <input type="text" class="form-input" id="cfgWelcomeTitle">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cfgWelcomeMessage">PESAN DARI DEVELOPER:</label>
+                            <textarea class="form-textarea" id="cfgWelcomeMessage" style="height:130px"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="cfgWelcomePantun">PANTUN SAMBUTAN:</label>
+                            <textarea class="form-textarea" id="cfgWelcomePantun" style="height:90px"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-check-square"></i> TEXT PERSETUJUAN (AGREE TO CONTINUE)</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">KATA-KATA PERSETUJUAN AKSES:</label>
+                            <input type="text" class="form-input" id="cfgAgreementText" value="SAYA TELAH MEMBACA, MEMAHAMI, DAN MENYETUJUI SELURUH PROTOKOL SIBER & PERATURAN DITZZ NEWERA">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">TOMBOL MASUK (CTA TEXT):</label>
+                            <input type="text" class="form-input" id="cfgEnterBtnText" value="INITIALIZE ACCESS // MASUK KE NEW ERA">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Products Management Pane -->
+                <section class="tab-pane" id="pane-products">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-boxes"></i> KATALOG PRODUK DIGITAL DITZZ STORE</div>
+                            <button class="action-btn" id="openAddProductModal"><i class="fas fa-plus"></i> TAMBAH PRODUK BARU</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="cyber-table" id="productsTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>NAMA PRODUK</th>
+                                        <th>KATEGORI</th>
+                                        <th>HARGA</th>
+                                        <th>STATUS STOK</th>
+                                        <th>AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productsTableBody">
+                                    <!-- Populated via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. Orders / Transactions Pane -->
+                <section class="tab-pane" id="pane-orders">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-receipt"></i> DAFTAR TRANSAKSI DIGITAL</div>
+                            <span class="badge-status badge-in">AUTOMATED DISPATCH</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="cyber-table">
+                                <thead>
+                                    <tr>
+                                        <th>ORDER ID</th>
+                                        <th>KLIEN / KODE SIBER</th>
+                                        <th>PRODUK</th>
+                                        <th>TOTAL</th>
+                                        <th>STATUS</th>
+                                        <th>WAKTU</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>#TX-94821</td>
+                                        <td><span style="color:var(--accent-cyan);">CYBER_GHOST_99</span></td>
+                                        <td>Premium VPN Access</td>
+                                        <td>Rp 150.000</td>
+                                        <td><span class="badge-status badge-in">COMPLETED</span></td>
+                                        <td>Baru saja</td>
+                                    </tr>
+                                    <tr>
+                                        <td>#TX-94820</td>
+                                        <td><span style="color:var(--accent-cyan);">NEXUS_VIP</span></td>
+                                        <td>Script Bot Package</td>
+                                        <td>Rp 500.000</td>
+                                        <td><span class="badge-status badge-in">COMPLETED</span></td>
+                                        <td>15m lalu</td>
+                                    </tr>
+                                    <tr>
+                                        <td>#TX-94819</td>
+                                        <td><span style="color:var(--accent-cyan);">SHADOW_DEV</span></td>
+                                        <td>Developer Toolkit Pro</td>
+                                        <td>Rp 450.000</td>
+                                        <td><span class="badge-status badge-in">COMPLETED</span></td>
+                                        <td>1j lalu</td>
+                                    </tr>
+                                    <tr>
+                                        <td>#TX-94818</td>
+                                        <td><span style="color:var(--accent-cyan);">V01D_USER</span></td>
+                                        <td>Game Top-Up Credits</td>
+                                        <td>Rp 50.000</td>
+                                        <td><span class="badge-status badge-in">COMPLETED</span></td>
+                                        <td>2j lalu</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. Transmissions (Messages) Pane -->
+                <section class="tab-pane" id="pane-messages">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-inbox"></i> TRANSMISI MASUK DARI CONTACT.HTML</div>
+                            <button class="action-btn" id="clearMessagesBtn"><i class="fas fa-trash"></i> BERSIHKAN</button>
+                        </div>
+                        <div id="messagesList" style="display: flex; flex-direction: column; gap: 15px;">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. System Settings Pane -->
+                <section class="tab-pane" id="pane-settings">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-sliders-h"></i> MAINFRAME CONFIGURATION</div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">SITE TITLE:</label>
+                                <input type="text" class="form-input" id="cfgSiteTitle" value="DITZZ NEWERA">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">TAGLINE / SUBTITLE:</label>
+                                <input type="text" class="form-input" id="cfgSiteTagline" value="THE DIGITAL FRONTIER // PREMIUM DIGITAL MARKETPLACE">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CONTACT EMAIL:</label>
+                                <input type="email" class="form-input" id="cfgContactEmail" value="admin@ditzznewera.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">SYSTEM VERSION:</label>
+                                <input type="text" class="form-input" value="v3.7.1-RELEASE" readonly style="opacity: 0.6;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-panel" style="border-color: rgba(255,0,64,0.4);">
+                        <div class="card-header">
+                            <div class="card-title" style="color: var(--accent-red);"><i class="fas fa-exclamation-triangle"></i> DANGER ZONE // RESET SYSTEM</div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 15px;">
+                            Reset konfigurasi website ke pengaturan bawaan pabrik (Default Settings). Data produk dan aturan akan dikembalikan ke setelan awal.
+                        </p>
+                        <button class="action-btn" id="resetDefaultsBtn" style="border-color: var(--accent-red); color: var(--accent-red);">
+                            <i class="fas fa-radiation"></i> KEMBALIKAN KE DEFAULT
+                        </button>
+                    </div>
+                </section>
+
+                <section class="tab-pane" id="pane-database">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-database"></i> SUPABASE DATABASE & REALTIME</div>
+                            <span class="badge-status badge-limited" id="databaseConnectionStatus">MENGHUBUNGKAN...</span>
+                        </div>
+                        <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
+                            Perubahan konfigurasi, katalog produk, pesan, akun Admin/Keamanan, dan blokir global disimpan terpusat. Halaman visitor memuat perubahan baru otomatis melalui Supabase Realtime.
+                        </p>
+                        <div class="input-hint" style="line-height:1.8;margin-bottom:16px;">
+                            <strong>Vercel environment variables</strong><br>
+                            SUPABASE_URL — URL project<br>
+                            SUPABASE_PUBLISHABLE_KEY — aman untuk browser dengan RLS aktif<br>
+                            SUPABASE_SECRET_KEY — hanya untuk Vercel Functions; jangan pernah ditempatkan di HTML atau kode browser.
+                        </div>
+                        <button class="action-btn btn-save" id="refreshDatabaseBtn" type="button"><i class="fas fa-sync-alt"></i> MUAT ULANG DATA DATABASE</button>
+                        <button class="action-btn" id="importLegacyDataBtn" type="button"><i class="fas fa-file-import"></i> IMPOR DATA DARI BROWSER INI</button>
+                        <p class="input-hint" id="databaseSyncDetails" role="status" style="margin-top:14px;">
+                            Impor membawa konfigurasi, produk, dan pesan lama perangkat ini jika data database masih kosong. Akun/password lokal lama harus dibuat ulang melalui Supabase Auth.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="tab-pane" id="pane-security">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-user-shield"></i> ADMIN SECURITY CENTER</div>
+                            <span class="badge-status badge-limited">SUPABASE SHARED DATA</span>
+                        </div>
+                        <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.7;margin-bottom:18px;">
+                            Profil, kredensial, produk, pesan, moderasi, dan pengaturan disimpan di Supabase. Login memakai Supabase Auth; kredensial tidak disimpan di browser.
+                        </p>
+                        <form id="securityCredentialsForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="securityDisplayName">NAMA TAMPILAN:</label>
+                                    <input type="text" class="form-input" id="securityDisplayName" required minlength="1" maxlength="50" autocomplete="name">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="securityNewUsername">USERNAME:</label>
+                                    <input type="text" class="form-input" id="securityNewUsername" required minlength="3" maxlength="32" autocomplete="username">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="securityCurrentPassword">PASSWORD SAAT INI:</label>
+                                    <input type="password" class="form-input" id="securityCurrentPassword" required autocomplete="current-password">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="securityNewPassword">PASSWORD BARU (OPSIONAL):</label>
+                                    <input type="password" class="form-input" id="securityNewPassword" minlength="12" autocomplete="new-password">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="securityConfirmPassword">ULANGI PASSWORD BARU:</label>
+                                    <input type="password" class="form-input" id="securityConfirmPassword" minlength="12" autocomplete="new-password">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="securityProfilePhoto">FOTO PROFIL (PNG / GIF / WEBP / JPG):</label>
+                                    <input type="file" class="form-input" id="securityProfilePhoto" accept="image/png,image/gif,image/webp,image/jpeg">
+                                    <div class="input-hint">GIF animasi didukung. File diunggah ke Supabase Storage; batas ukuran mengikuti konfigurasi Storage dan paket project.</div>
+                                    <label class="input-hint"><input type="checkbox" id="securityClearProfilePhoto"> Hapus foto profil saat ini</label>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">PRATINJAU FOTO:</label>
+                                    <div class="profile-photo-preview" id="securityProfilePreview">
+                                        <span id="securityProfileInitials">AD</span>
+                                        <img id="securityProfilePreviewImage" alt="Pratinjau foto profil" hidden>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="action-btn btn-save"><i class="fas fa-user-edit"></i> SIMPAN PROFIL</button>
+                        </form>
+                    </div>
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-user-check"></i> APPROVAL NAMA PENGUNJUNG</div>
+                        </div>
+                        <p style="font-size:.8rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+                            Nama yang disetujui dapat melewati kecocokan daftar blokir untuk nama itu saja. Masukkan satu nama per baris.
+                        </p>
+                        <div class="form-group">
+                            <label class="form-label" for="cfgApprovedVisitors">NAMA YANG DISETUJUI:</label>
+                            <textarea class="form-textarea" id="cfgApprovedVisitors" placeholder="Yunus Dandul&#10;Yusit"></textarea>
+                            <div class="input-hint">Daftar tersimpan di Supabase dan berlaku pada seluruh perangkat visitor setelah perubahan tersinkron.</div>
+                        </div>
+                        <button type="button" class="action-btn btn-save" id="saveApprovedVisitorsBtn"><i class="fas fa-save"></i> SIMPAN PERSETUJUAN</button>
+                    </div>
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-ban"></i> DAFTAR NAMA / KATA TERLARANG</div>
+                        </div>
+                        <p style="font-size:.8rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+                            Enam nama bawaan di bawah memicu blokir permanen sesuai aturan website. Kata kasar atau username yang tidak masuk akal lainnya hanya mendapat peringatan dan masa tunggu 20 detik. Daftar tersimpan di Supabase.
+                        </p>
+                        <div class="form-group">
+                            <label class="form-label" for="cfgBlockedVisitorTerms">NAMA / KATA YANG MEMICU BLOKIR:</label>
+                            <textarea class="form-textarea" id="cfgBlockedVisitorTerms" rows="8"></textarea>
+                            <div class="input-hint">Daftar awal berisi enam nama bawaan dan dapat ditambah atau diubah oleh Admin/Keamanan. Nama yang disetujui dapat melewati kecocokan daftar ini.</div>
+                        </div>
+                        <button type="button" class="action-btn btn-save" id="saveBlockedVisitorTermsBtn"><i class="fas fa-save"></i> SIMPAN DAFTAR TERLARANG</button>
+                        <div class="form-group" style="margin-top:18px">
+                            <div class="input-hint" id="blockedVisitorStatus" role="status">Tidak ada blokir visitor pada perangkat ini.</div>
+                            <button type="button" class="action-btn" id="clearVisitorBlockBtn"><i class="fas fa-unlock"></i> BUKA BLOKIR PERANGKAT INI</button>
+                        </div>
+                    </div>
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-toggle-on"></i> STATUS & PEMELIHARAAN FITUR</div>
+                        </div>
+                        <p style="font-size:.8rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+                            Atur fitur menjadi tersedia, segera hadir, atau sedang diperbarui. Perubahan ini disimpan pada browser/perangkat ini.
+                        </p>
+                        <div class="form-grid">
+                            <div class="form-group"><label class="form-label" for="featureHomeStatus">HOME:</label><select class="form-select feature-status-select" id="featureHomeStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureAboutStatus">ABOUT:</label><select class="form-select feature-status-select" id="featureAboutStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureStoreStatus">STORE:</label><select class="form-select feature-status-select" id="featureStoreStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureContactStatus">CONTACT:</label><select class="form-select feature-status-select" id="featureContactStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureMusicStatus">MUSIK:</label><select class="form-select feature-status-select" id="featureMusicStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureUpdatesStatus">UPDATES:</label><select class="form-select feature-status-select" id="featureUpdatesStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureEventsStatus">EVENTS:</label><select class="form-select feature-status-select" id="featureEventsStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureGalleryStatus">GALLERY:</label><select class="form-select feature-status-select" id="featureGalleryStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureFaqStatus">FAQ:</label><select class="form-select feature-status-select" id="featureFaqStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureCommunityStatus">VISITOR LOUNGE:</label><select class="form-select feature-status-select" id="featureCommunityStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                            <div class="form-group"><label class="form-label" for="featureGuideStatus">FIELD GUIDE:</label><select class="form-select feature-status-select" id="featureGuideStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="featureStatusMessage">PESAN STATUS UNTUK VISITOR:</label>
+                            <textarea class="form-textarea" id="featureStatusMessage" placeholder="Contoh: Kami sedang menyiapkan pembaruan agar pengalaman Anda lebih nyaman."></textarea>
+                        </div>
+                        <button type="button" class="action-btn btn-save" id="saveFeatureStatusBtn"><i class="fas fa-save"></i> SIMPAN STATUS FITUR</button>
+                    </div>
+                    <div class="card-panel" id="securityAccountsPanel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-users-cog"></i> KELOLA AKUN ADMIN & KEAMANAN</div>
+                        </div>
+                        <p style="font-size:.8rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
+                            Admin dan Keamanan dapat mengelola akun Admin maupun Keamanan. Jangan hapus satu-satunya akun Admin agar akses CPanel tetap tersedia.
+                        </p>
+                        <form id="securityAccountForm">
+                            <input type="hidden" id="securityAccountOriginalUsername">
+                            <div class="form-grid">
+                                <div class="form-group"><label class="form-label" for="securityAccountUsername">USERNAME:</label><input type="text" class="form-input" id="securityAccountUsername" required minlength="3" maxlength="32"></div>
+                                <div class="form-group"><label class="form-label" for="securityAccountDisplayName">NAMA TAMPILAN:</label><input type="text" class="form-input" id="securityAccountDisplayName" maxlength="50"></div>
+                                <div class="form-group"><label class="form-label" for="securityAccountRole">ROLE:</label><select class="form-select" id="securityAccountRole"><option value="security">Keamanan</option><option value="admin">Admin</option></select></div>
+                                <div class="form-group"><label class="form-label" for="securityAccountPassword">PASSWORD BARU:</label><input type="password" class="form-input" id="securityAccountPassword" minlength="12" autocomplete="new-password"><div class="input-hint">Minimal 12 karakter. Wajib saat membuat akun; kosongkan untuk mempertahankan password saat mengubah akun.</div></div>
+                                <div class="form-group"><label class="form-label" for="securityAccountPhoto">FOTO PROFIL:</label><input type="file" class="form-input" id="securityAccountPhoto" accept="image/png,image/gif,image/webp,image/jpeg"><div class="input-hint">PNG, GIF animasi, WEBP, atau JPG. Tidak ada batas ukuran di aplikasi; kapasitas browser/perangkat tetap berlaku.</div><label class="input-hint"><input type="checkbox" id="securityAccountClearPhoto"> Hapus foto profil</label></div>
+                            </div>
+                            <button type="submit" class="action-btn btn-save"><i class="fas fa-user-plus"></i> SIMPAN AKUN</button>
+                            <button type="button" class="action-btn" id="cancelSecurityAccountEditBtn">BATAL UBAH</button>
+                        </form>
+                        <div class="table-responsive" style="margin-top:18px"><table class="cyber-table"><thead><tr><th>USERNAME</th><th>ROLE</th><th>AKSI</th></tr></thead><tbody id="securityAccountsList"></tbody></table></div>
+                    </div>
+                </section>
+
+                <section class="tab-pane" id="pane-blocked-visitors">
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-user-slash"></i> BLOKIR GLOBAL DI SUPABASE</div>
+                            <span class="badge-status badge-in">LINTAS PERANGKAT</span>
+                        </div>
+                        <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.7;margin-bottom:18px;">
+                            Nama di daftar ini diperiksa oleh halaman visitor dari Supabase. Data tersimpan lintas perangkat dan diperbarui melalui Realtime.
+                        </p>
+                        <form id="globalVisitorBlockForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="globalVisitorBlockName">USERNAME VISITOR:</label>
+                                    <input class="form-input" id="globalVisitorBlockName" maxlength="40" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="globalVisitorBlockReason">ALASAN (OPSIONAL):</label>
+                                    <input class="form-input" id="globalVisitorBlockReason" maxlength="200">
+                                </div>
+                            </div>
+                            <button class="action-btn btn-save" type="submit"><i class="fas fa-ban"></i> BLOKIR DI SEMUA PERANGKAT</button>
+                        </form>
+                        <p id="globalVisitorBlockEmpty" class="input-hint" role="status">Belum ada blokir global.</p>
+                        <div class="table-responsive" id="globalVisitorBlockTable" hidden>
+                            <table class="cyber-table">
+                                <thead><tr><th>NAMA VISITOR</th><th>ALASAN</th><th>WAKTU BLOKIR</th><th>AKSI</th></tr></thead>
+                                <tbody id="globalVisitorBlockList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-panel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-desktop"></i> BLOKIR LOKAL PERANGKAT INI</div>
+                        </div>
+                        <p id="blockedVisitorManagerEmpty" class="input-hint" role="status">Tidak ada blokir lokal aktif pada perangkat ini.</p>
+                        <div class="table-responsive" id="blockedVisitorManagerTable" hidden>
+                            <table class="cyber-table">
+                                <thead><tr><th>NAMA VISITOR</th><th>ENTRI PEMICU</th><th>WAKTU BLOKIR</th><th>AKSI</th></tr></thead>
+                                <tbody id="blockedVisitorManagerList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Add/Edit Product -->
+    <div class="cpanel-modal" id="productModal">
+        <div class="modal-box">
+            <div class="card-header">
+                <div class="card-title" id="productModalTitle"><i class="fas fa-box"></i> TAMBAH PRODUK</div>
+                <button class="action-btn" id="closeProductModalBtn" style="padding: 4px 8px;">✕</button>
+            </div>
+            <form id="productForm">
+                <input type="hidden" id="prodFormId">
+                <div class="form-group">
+                    <label class="form-label">NAMA PRODUK:</label>
+                    <input type="text" class="form-input" id="prodFormName" required placeholder="Contoh: Cyber VPN Pro">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">KATEGORI:</label>
+                        <select class="form-select" id="prodFormCat">
+                            <option value="security">SECURITY</option>
+                            <option value="gaming">GAMING</option>
+                            <option value="cloud">CLOUD</option>
+                            <option value="development">DEVELOPMENT</option>
+                            <option value="automation">AUTOMATION</option>
+                            <option value="design">DESIGN</option>
+                            <option value="streaming">STREAMING</option>
+                            <option value="seo">SEO & MARKETING</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">HARGA (RP):</label>
+                        <input type="number" class="form-input" id="prodFormPrice" required placeholder="150000">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">STATUS STOK:</label>
+                        <select class="form-select" id="prodFormStock">
+                            <option value="in">IN STOCK</option>
+                            <option value="limited">LIMITED</option>
+                            <option value="out">SOLD OUT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">ICON FA (FontAwesome):</label>
+                        <input type="text" class="form-input" id="prodFormIcon" value="fa-shield-virus" placeholder="fa-shield-virus">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">DESKRIPSI PRODUK:</label>
+                    <textarea class="form-textarea" id="prodFormDesc" required placeholder="Deskripsi fitur lengkap produk..."></textarea>
+                </div>
+                <button type="submit" class="action-btn btn-save" style="width: 100%; justify-content: center; padding: 12px;">
+                    <i class="fas fa-check"></i> SIMPAN PRODUK
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-box" id="cpanelToast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastText">Perubahan berhasil disimpan!</span>
+    </div>
+
+    <script src="../site-sounds.js"></script>
+    <script>
+        /* ===== AUTHENTICATION CHECK ===== */
+        document.documentElement.classList.add('ditzz-admin-auth-pending');
+        const authStyle = document.createElement('style');
+        authStyle.textContent = 'html.ditzz-admin-auth-pending body{visibility:hidden!important}';
+        document.head.appendChild(authStyle);
+        let username = sessionStorage.getItem('ditzz_admin_user') || '';
+        let adminRole = sessionStorage.getItem('ditzz_admin_role') || '';
+        let currentAdminProfile = null;
+        const adminSessionReady = (async () => {
+            await window.DitzzData.ready;
+            if (!window.DitzzData.configured) {
+                throw new Error('Supabase belum terhubung; CPanel dinonaktifkan sampai database disiapkan.');
+            }
+            currentAdminProfile = await window.DitzzData.getCurrentAdmin();
+            if (!currentAdminProfile) throw new Error('Sesi Supabase tidak memiliki role CPanel.');
+            username = currentAdminProfile.username;
+            adminRole = currentAdminProfile.role;
+            sessionStorage.setItem('ditzz_admin_auth', 'true');
+            sessionStorage.setItem('ditzz_admin_user', username);
+            sessionStorage.setItem('ditzz_admin_role', adminRole);
+            sessionStorage.setItem('ditzz_admin_id', currentAdminProfile.id);
+            document.getElementById('adminUsername').textContent = currentAdminProfile.displayName || username;
+            document.getElementById('adminRoleLabel').textContent = adminRole === 'security' ? 'SECURITY' : 'ADMIN';
+            document.documentElement.classList.remove('ditzz-admin-auth-pending');
+            window.DitzzData.subscribeAdminUpdates();
+            return currentAdminProfile;
+        })().catch(error => {
+            console.error('CPanel authorization failed.', error);
+            sessionStorage.removeItem('ditzz_admin_auth');
+            sessionStorage.removeItem('ditzz_admin_user');
+            sessionStorage.removeItem('ditzz_admin_role');
+            sessionStorage.removeItem('ditzz_admin_id');
+            window.location.href = 'login.html';
+            throw error;
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            if (confirm('Konfirmasi: Akhiri sesi administrator root?')) {
+                try {
+                    await window.DitzzData.signOut();
+                    sessionStorage.removeItem('ditzz_admin_auth');
+                    sessionStorage.removeItem('ditzz_admin_user');
+                    sessionStorage.removeItem('ditzz_admin_role');
+                    sessionStorage.removeItem('ditzz_admin_id');
+                    window.location.href = 'login.html';
+                } catch (error) {
+                    showToast(error.message || 'Sesi tidak dapat diakhiri.', 'error');
+                }
+            }
+        });
+
+        /* ===== LIVE CLOCK ===== */
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').textContent = 'TIME: ' + now.toLocaleTimeString('en-US', { hour12: false });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        /* ===== DEFAULT CONFIGURATION MATRIX ===== */
+        const DEFAULT_CONFIG = {
+            siteTitle: 'DITZZ NEWERA',
+            siteTagline: 'THE DIGITAL FRONTIER // PREMIUM DIGITAL MARKETPLACE',
+            contactEmail: 'admin@ditzznewera.com',
+            introMusicUrl: 'https://youtu.be/tGv7CUutzqU?t=24',
+            introMusicId: 'tGv7CUutzqU',
+            introStartTime: 24,
+            introVolume: 100,
+            introTitle: 'PHONK / CYBER SYNTH - DITZZ THEME',
+            websiteMusicEnabled: true,
+            approvedVisitors: [],
+            blockedVisitorTerms: [
+                'yunus', 'yunus dandul', 'yunusdandul', 'ndal ndul', 'ndul', 'yusit'
+            ],
+            featureStatus: { home: 'available', about: 'available', store: 'available', contact: 'available', music: 'available', updates: 'available', events: 'available', gallery: 'available', faq: 'available', community: 'available', guide: 'available' },
+            featureStatusMessage: 'Kami sedang menyiapkan pembaruan agar pengalaman Anda lebih nyaman.',
+            welcomeTitle: 'SELAMAT DATANG DI DITZZ NEWERA',
+            welcomeMessage: 'Halo, selamat datang di markas kecil penuh neon ini! Terima kasih sudah mampir dan meluangkan waktu menjelajahi karya yang kami bangun dengan rasa ingin tahu, kreativitas, dan banyak kopi. Semoga setiap sudut website ini terasa seru, mudah digunakan, dan memberi inspirasi baru. Nikmati musiknya, jelajahi fiturnya, dan jangan ragu menyapa lewat halaman Contact kalau punya ide, pertanyaan, atau sekadar ingin bilang halo. Tetap santai, tetap penasaran, dan semoga harimu menyenangkan!',
+            welcomePantun: 'Naik sepeda ke kota Batu,\nBerhenti sebentar membeli ketan.\nSelamat datang, pengunjung baru,\nBug-nya cuma lagi cari makan! 😄',
+            tracks: [
+                { name: 'CYBERPUNK NEON DRIVE', id: '4xDzrJKXOOY' },
+                { name: 'SYNTHWAVE HACKER PROTOCOL', id: '79B5wX0hZ-0' },
+                { name: 'DARK AMBIENT MAINFRAME', id: 'kJQP7kiw5Fk' }
+            ],
+            rules: `1. Dilarang melakukan unauthorized brute-force, reverse engineering, atau eksploitasi berbahaya terhadap mainframe DITZZ NEWERA.\n2. Seluruh transaksi produk digital bersifat terenkripsi, terverifikasi otomatis, dan sah secara protokol siber.\n3. Hormati komunitas, privasi data anggota lain, dan integritas jaringan yang dibangun oleh DITZZ Syndicate.\n4. Garansi & Technical Support tersedia 24/7 melalui saluran resmi yang terdaftar pada sistem.`,
+            purpose: `DITZZ NEWERA didirikan untuk membangun ekosistem digital generasi baru bertema cyberpunk/hacker yang memadukan keamanan siber tingkat tinggi, estetika futuristik 3D modern, dan marketplace produk digital premium (tools, script otomatisasi, security suite, aset digital eksklusif) tanpa perantara yang rumit.`,
+            devName: 'DITZZ',
+            devRole: 'FOUNDER & LEAD SYSTEM ARCHITECT',
+            devBio: `DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh sistem DITZZ NEWERA. Didedikasikan untuk menciptakan platform yang tidak biasa, berjiwa siber, dan mengutamakan performa tanpa kompromi.`,
+            agreementText: 'Saya telah membaca, memahami, dan menyetujui peraturan sistem, tujuan website, informasi developer, pilihan musik, serta aturan nama pengunjung.',
+            enterBtnText: 'MASUK KE WEBSITE'
+        };
+
+        const TEMPORARY_VIOLATION_TERMS = [
+            'anjing', 'babi', 'kontol', 'memek', 'bangsat', 'bajingan', 'pantek', 'asu', 'tai',
+            'goblok', 'tolol', 'idiot', 'bodoh', 'brengsek', 'keparat', 'monyet', 'jancok',
+            'ngentot', 'pelecehan', 'fuck', 'shit', 'bitch', 'asshole', 'dick', 'pussy', 'whore', 'slut', 'porn', 'bokep',
+            'admin', 'administrator', 'root', 'owner', 'ditzz', 'system', 'moderator',
+            'test', 'asdf', 'qwerty', 'zxcv', 'lorem', 'ipsum', 'user', 'visitor'
+        ];
+
+        function migrateBlockedVisitorTerms(terms) {
+            const migrated = [];
+            const seen = new Set();
+            const temporaryTerms = new Set(TEMPORARY_VIOLATION_TERMS.map(normalizeConfiguredVisitorTerm));
+            (Array.isArray(terms) ? terms : DEFAULT_CONFIG.blockedVisitorTerms).forEach(term => {
+                if (typeof term !== 'string') return;
+                const normalized = normalizeConfiguredVisitorTerm(term);
+                if (!normalized || seen.has(normalized) || temporaryTerms.has(normalized)) return;
+                seen.add(normalized);
+                migrated.push(term.trim());
+            });
+            return migrated;
+        }
+
+        // Extract YouTube ID & Timestamp helper
+        function extractYouTubeId(url) {
+            if (!url) return 'tGv7CUutzqU';
+            if (url.length === 11 && !url.includes('/') && !url.includes('.')) return url;
+            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+            return match ? match[1] : 'tGv7CUutzqU';
+        }
+
+        function parseYouTubeUrlAdmin(url) {
+            if (!url) return { id: 'tGv7CUutzqU', start: 24 };
+            let id = 'tGv7CUutzqU';
+            let start = 0;
+            const timeMatch = url.match(/[?&](?:t|start)=(\d+)/) || url.match(/[?&]t=(\d+)s/);
+            if (timeMatch) start = parseInt(timeMatch[1]);
+            if (url.length === 11 && !url.includes('/') && !url.includes('.')) {
+                id = url;
+            } else {
+                const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+                if (match) id = match[1];
+            }
+            return { id, start };
+        }
+
+        // Load config from localStorage or defaults
+        function loadConfig() {
+            const stored = localStorage.getItem('ditzz_config');
+            if (stored) {
+                try {
+                    const config = Object.assign({}, DEFAULT_CONFIG, JSON.parse(stored));
+                    config.blockedVisitorTerms = migrateBlockedVisitorTerms(config.blockedVisitorTerms);
+                    if (config.agreementText === 'SAYA TELAH MEMBACA, MEMAHAMI, DAN MENYETUJUI SELURUH PROTOKOL SIBER & PERATURAN DITZZ NEWERA') {
+                        config.agreementText = DEFAULT_CONFIG.agreementText;
+                    }
+                    if (config.enterBtnText === 'INITIALIZE ACCESS // MASUK KE NEW ERA') {
+                        config.enterBtnText = DEFAULT_CONFIG.enterBtnText;
+                    }
+                    const legacyPantun = [
+                        'Jalan-jalan naik sepeda,',
+                        'Ban berputar sampai ke taman.',
+                        'Kalau website ini bikin betah,',
+                        "Jangan lupa puji developer-nya pelan-pelan! 😄"
+                    ].join('\n');
+                    if (String(config.welcomePantun || '').replace(/\\n/g, '\n').trim() === legacyPantun) {
+                        config.welcomePantun = DEFAULT_CONFIG.welcomePantun;
+                    }
+                    return config;
+                }
+                catch(e) { return DEFAULT_CONFIG; }
+            }
+            return DEFAULT_CONFIG;
+        }
+
+        let appConfig = loadConfig();
+        // Populate Form Fields
+        function populateFields() {
+            document.getElementById('cfgSiteTitle').value = appConfig.siteTitle;
+            document.getElementById('cfgSiteTagline').value = appConfig.siteTagline;
+            document.getElementById('cfgContactEmail').value = appConfig.contactEmail;
+            document.getElementById('cfgApprovedVisitors').value = (appConfig.approvedVisitors || []).join('\n');
+            document.getElementById('cfgBlockedVisitorTerms').value = (Array.isArray(appConfig.blockedVisitorTerms) ? appConfig.blockedVisitorTerms : DEFAULT_CONFIG.blockedVisitorTerms).join('\n');
+            updateBlockedVisitorStatus();
+            const featureStatus = appConfig.featureStatus || {};
+            document.getElementById('featureHomeStatus').value = featureStatus.home || 'available';
+            document.getElementById('featureAboutStatus').value = featureStatus.about || 'available';
+            document.getElementById('featureStoreStatus').value = featureStatus.store || 'available';
+            document.getElementById('featureContactStatus').value = featureStatus.contact || 'available';
+            document.getElementById('featureMusicStatus').value = featureStatus.music || 'available';
+            document.getElementById('featureUpdatesStatus').value = featureStatus.updates || 'available';
+            document.getElementById('featureEventsStatus').value = featureStatus.events || 'available';
+            document.getElementById('featureGalleryStatus').value = featureStatus.gallery || 'available';
+            document.getElementById('featureFaqStatus').value = featureStatus.faq || 'available';
+            document.getElementById('featureCommunityStatus').value = featureStatus.community || 'available';
+            document.getElementById('featureGuideStatus').value = featureStatus.guide || 'available';
+            document.getElementById('featureStatusMessage').value = appConfig.featureStatusMessage || DEFAULT_CONFIG.featureStatusMessage;
+
+            document.getElementById('cfgIntroMusicUrl').value = appConfig.introMusicUrl;
+            document.getElementById('cfgIntroStartTime').value = appConfig.introStartTime;
+            document.getElementById('cfgIntroVolume').value = appConfig.introVolume;
+            document.getElementById('cfgIntroTitle').value = appConfig.introTitle;
+            document.getElementById('cfgWebsiteMusicEnabled').value = appConfig.websiteMusicEnabled === false ? 'false' : 'true';
+
+            if (appConfig.tracks && appConfig.tracks[0]) {
+                document.getElementById('cfgTrack1Name').value = appConfig.tracks[0].name;
+                document.getElementById('cfgTrack1Id').value = appConfig.tracks[0].id;
+            }
+            if (appConfig.tracks && appConfig.tracks[1]) {
+                document.getElementById('cfgTrack2Name').value = appConfig.tracks[1].name;
+                document.getElementById('cfgTrack2Id').value = appConfig.tracks[1].id;
+            }
+            if (appConfig.tracks && appConfig.tracks[2]) {
+                document.getElementById('cfgTrack3Name').value = appConfig.tracks[2].name;
+                document.getElementById('cfgTrack3Id').value = appConfig.tracks[2].id;
+            }
+
+            document.getElementById('cfgRules').value = appConfig.rules;
+            document.getElementById('cfgPurpose').value = appConfig.purpose;
+            document.getElementById('cfgDevName').value = appConfig.devName;
+            document.getElementById('cfgDevRole').value = appConfig.devRole;
+            document.getElementById('cfgDevBio').value = appConfig.devBio;
+            document.getElementById('cfgWelcomeTitle').value = appConfig.welcomeTitle;
+            document.getElementById('cfgWelcomeMessage').value = appConfig.welcomeMessage;
+            document.getElementById('cfgWelcomePantun').value = appConfig.welcomePantun;
+
+            document.getElementById('cfgAgreementText').value = appConfig.agreementText;
+            document.getElementById('cfgEnterBtnText').value = appConfig.enterBtnText;
+        }
+        populateFields();
+
+        // Save Config
+        async function saveConfig() {
+            const rawUrl = document.getElementById('cfgIntroMusicUrl').value.trim();
+            const parsedIntro = parseYouTubeUrlAdmin(rawUrl);
+            const ytId = parsedIntro.id;
+
+            appConfig.siteTitle = document.getElementById('cfgSiteTitle').value.trim();
+            appConfig.siteTagline = document.getElementById('cfgSiteTagline').value.trim();
+            appConfig.contactEmail = document.getElementById('cfgContactEmail').value.trim();
+            appConfig.approvedVisitors = document.getElementById('cfgApprovedVisitors').value
+                .split(/\r?\n/)
+                .map(name => name.trim())
+                .filter(Boolean);
+            appConfig.blockedVisitorTerms = migrateBlockedVisitorTerms(readBlockedVisitorTerms());
+            appConfig.featureStatus = {
+                home: document.getElementById('featureHomeStatus').value,
+                about: document.getElementById('featureAboutStatus').value,
+                store: document.getElementById('featureStoreStatus').value,
+                contact: document.getElementById('featureContactStatus').value,
+                music: document.getElementById('featureMusicStatus').value,
+                updates: document.getElementById('featureUpdatesStatus').value,
+                events: document.getElementById('featureEventsStatus').value,
+                gallery: document.getElementById('featureGalleryStatus').value,
+                faq: document.getElementById('featureFaqStatus').value,
+                community: document.getElementById('featureCommunityStatus').value,
+                guide: document.getElementById('featureGuideStatus').value
+            };
+            appConfig.featureStatusMessage = document.getElementById('featureStatusMessage').value.trim();
+
+            let startSec = parseInt(document.getElementById('cfgIntroStartTime').value);
+            if (isNaN(startSec) || (startSec === 0 && parsedIntro.start > 0)) {
+                startSec = parsedIntro.start;
+                document.getElementById('cfgIntroStartTime').value = startSec;
+            }
+
+            appConfig.introMusicUrl = rawUrl;
+            appConfig.introMusicId = ytId;
+            appConfig.introStartTime = startSec || 0;
+            appConfig.introVolume = parseInt(document.getElementById('cfgIntroVolume').value) || 100;
+            appConfig.introTitle = document.getElementById('cfgIntroTitle').value.trim();
+            appConfig.websiteMusicEnabled = document.getElementById('cfgWebsiteMusicEnabled').value === 'true';
+
+            appConfig.tracks = [
+                { name: document.getElementById('cfgTrack1Name').value.trim(), id: extractYouTubeId(document.getElementById('cfgTrack1Id').value.trim()) },
+                { name: document.getElementById('cfgTrack2Name').value.trim(), id: extractYouTubeId(document.getElementById('cfgTrack2Id').value.trim()) },
+                { name: document.getElementById('cfgTrack3Name').value.trim(), id: extractYouTubeId(document.getElementById('cfgTrack3Id').value.trim()) }
+            ];
+
+            appConfig.rules = document.getElementById('cfgRules').value.trim();
+            appConfig.purpose = document.getElementById('cfgPurpose').value.trim();
+            appConfig.devName = document.getElementById('cfgDevName').value.trim();
+            appConfig.devRole = document.getElementById('cfgDevRole').value.trim();
+            appConfig.devBio = document.getElementById('cfgDevBio').value.trim();
+            appConfig.welcomeTitle = document.getElementById('cfgWelcomeTitle').value.trim();
+            appConfig.welcomeMessage = document.getElementById('cfgWelcomeMessage').value.trim();
+            appConfig.welcomePantun = document.getElementById('cfgWelcomePantun').value.trim();
+
+            appConfig.agreementText = document.getElementById('cfgAgreementText').value.trim();
+            appConfig.enterBtnText = document.getElementById('cfgEnterBtnText').value.trim();
+
+            try {
+                await window.DitzzData.saveConfig(appConfig);
+                showToast('Konfigurasi berhasil disimpan ke Supabase dan diterapkan.');
+            } catch (error) {
+                showToast(error.message || 'Konfigurasi tidak dapat disimpan ke database.', 'error');
+                return;
+            }
+
+            // Reload preview iframe if active
+            const iframe = document.getElementById('previewIframe');
+            if (iframe) iframe.contentWindow.location.reload();
+        }
+
+        document.getElementById('globalSaveBtn').addEventListener('click', saveConfig);
+
+        const credentialForm = document.getElementById('securityCredentialsForm');
+
+        function profileInitials(name) {
+            return String(name || 'Admin').trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
+        }
+
+        function validProfilePhoto(photo) {
+            return typeof photo === 'string'
+                && (/^data:image\/(?:png|gif|webp|jpeg);base64,/i.test(photo) || /^https:\/\//i.test(photo));
+        }
+
+        function profileSaveErrorMessage(error, fallback) {
+            return error && error.message ? error.message : fallback;
+        }
+
+        function readProfilePhoto(file) {
+            if (!file) return Promise.resolve(null);
+            const allowedTypes = ['image/png', 'image/gif', 'image/webp', 'image/jpeg'];
+            if (!allowedTypes.includes(file.type)) {
+                return Promise.reject(new Error('Pilih file PNG, GIF, WEBP, atau JPG.'));
+            }
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('File foto tidak dapat dibaca.'));
+                reader.onload = () => {
+                    if (typeof reader.result !== 'string' || !validProfilePhoto(reader.result)) {
+                        reject(new Error('Format data foto tidak valid.'));
+                        return;
+                    }
+                    resolve(reader.result);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function updateAdminIdentity(account) {
+            const displayName = account.displayName || account.username;
+            document.getElementById('adminUsername').textContent = displayName;
+            document.getElementById('adminUsername').title = account.username;
+            const initials = document.getElementById('adminAvatarInitials');
+            const photo = document.getElementById('adminProfilePhoto');
+            initials.textContent = profileInitials(displayName);
+            if (validProfilePhoto(account.profilePhoto)) {
+                photo.src = account.profilePhoto;
+                photo.hidden = false;
+                initials.hidden = true;
+            } else {
+                photo.removeAttribute('src');
+                photo.hidden = true;
+                initials.hidden = false;
+            }
+        }
+
+        function updateProfilePreview(photoData, displayName) {
+            const image = document.getElementById('securityProfilePreviewImage');
+            const initials = document.getElementById('securityProfileInitials');
+            initials.textContent = profileInitials(displayName);
+            if (validProfilePhoto(photoData)) {
+                image.src = photoData;
+                image.hidden = false;
+                initials.hidden = true;
+            } else {
+                image.removeAttribute('src');
+                image.hidden = true;
+                initials.hidden = false;
+            }
+        }
+
+        function populateCurrentAdminProfile() {
+            const account = adminUsers.find(user => user.username === sessionStorage.getItem('ditzz_admin_user'));
+            if (!account) return;
+            document.getElementById('securityDisplayName').value = account.displayName || account.username;
+            document.getElementById('securityNewUsername').value = account.username;
+            updateAdminIdentity(account);
+            updateProfilePreview(account.profilePhoto, account.displayName || account.username);
+        }
+
+        document.getElementById('securityProfilePhoto').addEventListener('change', async event => {
+            const file = event.target.files[0];
+            if (!file) return;
+            try {
+                const previewData = await readProfilePhoto(file);
+                updateProfilePreview(previewData, document.getElementById('securityDisplayName').value);
+                document.getElementById('securityClearProfilePhoto').checked = false;
+            } catch (error) {
+                event.target.value = '';
+                showToast(profileSaveErrorMessage(error, 'Foto profil tidak dapat dimuat.'));
+            }
+        });
+
+        document.getElementById('securityDisplayName').addEventListener('input', event => {
+            if (!document.getElementById('securityProfilePhoto').files.length
+                && !document.getElementById('securityClearProfilePhoto').checked) {
+                const account = adminUsers.find(user => user.username === sessionStorage.getItem('ditzz_admin_user'));
+                updateProfilePreview(account && account.profilePhoto, event.target.value);
+            } else {
+                document.getElementById('securityProfileInitials').textContent = profileInitials(event.target.value);
+            }
+        });
+
+        document.getElementById('securityClearProfilePhoto').addEventListener('change', event => {
+            if (event.target.checked) {
+                document.getElementById('securityProfilePhoto').value = '';
+                updateProfilePreview('', document.getElementById('securityDisplayName').value);
+            } else {
+                const account = adminUsers.find(user => user.username === sessionStorage.getItem('ditzz_admin_user'));
+                updateProfilePreview(account && account.profilePhoto, document.getElementById('securityDisplayName').value);
+            }
+        });
+
+        async function loadAdminUsers() {
+            await adminSessionReady;
+            return window.DitzzData.listAdminUsers();
+        }
+
+        let adminUsers = [];
+        const adminUsersReady = loadAdminUsers().then(users => {
+            adminUsers = users;
+            renderAdminUsers();
+            populateCurrentAdminProfile();
+        }).catch(error => {
+            showToast(error.message || 'Daftar akun admin tidak dapat dimuat.');
+        });
+        document.addEventListener('ditzz:admin-users-changed', async () => {
+            try {
+                adminUsers = await window.DitzzData.listAdminUsers();
+                renderAdminUsers();
+                populateCurrentAdminProfile();
+            } catch (error) {
+                showToast(error.message || 'Daftar akun Admin tidak dapat diperbarui.', 'error');
+            }
+        });
+
+        function renderAdminUsers() {
+            const list = document.getElementById('securityAccountsList');
+            if (!list) return;
+            list.replaceChildren();
+            adminUsers.forEach(account => {
+                const row = document.createElement('tr');
+                const usernameCell = document.createElement('td');
+                if (validProfilePhoto(account.profilePhoto)) {
+                    const photo = document.createElement('img');
+                    photo.className = 'account-photo-thumb';
+                    photo.src = account.profilePhoto;
+                    photo.alt = '';
+                    usernameCell.appendChild(photo);
+                }
+                const accountLabel = document.createElement('span');
+                accountLabel.textContent = account.displayName || account.username;
+                usernameCell.appendChild(accountLabel);
+                const usernameHint = document.createElement('small');
+                usernameHint.style.cssText = 'display:block;color:var(--text-secondary);margin-top:3px';
+                usernameHint.textContent = account.username;
+                usernameCell.appendChild(usernameHint);
+                const roleCell = document.createElement('td');
+                roleCell.textContent = account.role === 'security' ? 'Keamanan' : 'Admin';
+                const actionsCell = document.createElement('td');
+                if (account.username === username) {
+                    actionsCell.textContent = 'Kelola kredensial melalui formulir di atas';
+                } else {
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'btn-table';
+                    editButton.textContent = 'Ubah';
+                    editButton.addEventListener('click', () => {
+                        document.getElementById('securityAccountOriginalUsername').value = account.username;
+                        document.getElementById('securityAccountUsername').value = account.username;
+                        document.getElementById('securityAccountDisplayName').value = account.displayName || account.username;
+                        document.getElementById('securityAccountRole').value = account.role;
+                        document.getElementById('securityAccountPassword').value = '';
+                        document.getElementById('securityAccountPassword').required = false;
+                        document.getElementById('securityAccountPhoto').value = '';
+                        document.getElementById('securityAccountClearPhoto').checked = false;
+                    });
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.className = 'btn-table danger';
+                    deleteButton.textContent = 'Hapus';
+                    deleteButton.addEventListener('click', async () => {
+                        const remainingAdmins = adminUsers.filter(user => user.username !== account.username && user.role === 'admin').length;
+                        if (account.role === 'admin' && remainingAdmins === 0) {
+                            showToast('Tidak dapat menghapus satu-satunya akun Admin.');
+                            return;
+                        }
+                        if (!confirm(`Hapus akun "${account.username}"?`)) return;
+                        try {
+                            await window.DitzzData.deleteAdminUser(account.id);
+                            adminUsers = adminUsers.filter(user => user.id !== account.id);
+                            renderAdminUsers();
+                            showToast('Akun berhasil dihapus.');
+                        } catch (error) {
+                            showToast(error.message || 'Akun tidak dapat dihapus.', 'error');
+                        }
+                    });
+                    actionsCell.append(editButton, deleteButton);
+                }
+                row.append(usernameCell, roleCell, actionsCell);
+                list.appendChild(row);
+            });
+        }
+
+        const securityAccountForm = document.getElementById('securityAccountForm');
+        securityAccountForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            await adminUsersReady;
+            const originalUsername = document.getElementById('securityAccountOriginalUsername').value;
+            const newUsername = document.getElementById('securityAccountUsername').value.trim();
+            const displayName = document.getElementById('securityAccountDisplayName').value.trim() || newUsername;
+            const role = document.getElementById('securityAccountRole').value;
+            const password = document.getElementById('securityAccountPassword').value;
+            const photoFile = document.getElementById('securityAccountPhoto').files[0];
+            const clearPhoto = document.getElementById('securityAccountClearPhoto').checked;
+            if (!/^[a-zA-Z0-9._-]{3,32}$/.test(newUsername)) {
+                showToast('Username harus 3-32 karakter: huruf, angka, titik, _ atau -.');
+                return;
+            }
+            if (displayName.length > 50) {
+                showToast('Nama tampilan maksimal 50 karakter.');
+                return;
+            }
+            if (photoFile && clearPhoto) {
+                showToast('Pilih foto baru atau centang hapus foto, jangan keduanya.');
+                return;
+            }
+            const editingIndex = adminUsers.findIndex(account => account.username === originalUsername);
+            if (adminUsers.some((account, index) => account.username.toLowerCase() === newUsername.toLowerCase() && index !== editingIndex)) {
+                showToast('Username sudah digunakan.');
+                return;
+            }
+            if (editingIndex < 0 && password.length < 12) {
+                showToast('Password akun baru minimal harus 12 karakter.');
+                return;
+            }
+            if (password && password.length < 12) {
+                showToast('Password minimal harus 12 karakter.');
+                return;
+            }
+            if (editingIndex >= 0 && adminUsers[editingIndex].role === 'admin' && role !== 'admin'
+                && adminUsers.filter(account => account.role === 'admin').length === 1) {
+                showToast('Tidak dapat mengubah satu-satunya akun Admin menjadi role Keamanan.');
+                return;
+            }
+            try {
+                let photoUrl = editingIndex >= 0 ? adminUsers[editingIndex].profilePhoto : '';
+                if (clearPhoto) {
+                    photoUrl = '';
+                } else if (photoFile) {
+                    photoUrl = await window.DitzzData.uploadProfilePhoto(photoFile, newUsername);
+                }
+                const account = editingIndex >= 0
+                    ? await window.DitzzData.updateAdminUser({
+                        id: adminUsers[editingIndex].id,
+                        username: newUsername,
+                        displayName,
+                        role,
+                        password,
+                        avatarUrl: photoUrl
+                    })
+                    : await window.DitzzData.createAdminUser({
+                        username: newUsername,
+                        displayName,
+                        role,
+                        password,
+                        avatarUrl: photoUrl
+                    });
+                const updatedUsers = adminUsers.slice();
+                if (editingIndex >= 0) updatedUsers[editingIndex] = account;
+                else updatedUsers.push(account);
+                adminUsers = updatedUsers;
+                securityAccountForm.reset();
+                document.getElementById('securityAccountOriginalUsername').value = '';
+                document.getElementById('securityAccountPassword').required = true;
+                document.getElementById('securityAccountPhoto').value = '';
+                document.getElementById('securityAccountClearPhoto').checked = false;
+                renderAdminUsers();
+                showToast(editingIndex >= 0 ? 'Akun berhasil diperbarui.' : 'Akun baru berhasil dibuat.');
+            } catch (error) {
+                showToast(profileSaveErrorMessage(error, 'Perubahan akun tidak dapat disimpan.'));
+            }
+        });
+
+        document.getElementById('cancelSecurityAccountEditBtn').addEventListener('click', () => {
+            securityAccountForm.reset();
+            document.getElementById('securityAccountOriginalUsername').value = '';
+            document.getElementById('securityAccountPassword').required = true;
+            document.getElementById('securityAccountPhoto').value = '';
+            document.getElementById('securityAccountClearPhoto').checked = false;
+        });
+
+        credentialForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            const username = document.getElementById('securityNewUsername').value.trim();
+            const displayName = document.getElementById('securityDisplayName').value.trim();
+            const currentPassword = document.getElementById('securityCurrentPassword').value;
+            const password = document.getElementById('securityNewPassword').value;
+            const confirmation = document.getElementById('securityConfirmPassword').value;
+            const photoFile = document.getElementById('securityProfilePhoto').files[0];
+            const clearPhoto = document.getElementById('securityClearProfilePhoto').checked;
+            if (!/^[a-zA-Z0-9._-]{3,32}$/.test(username)) {
+                showToast('Username harus 3-32 karakter: huruf, angka, titik, _ atau -.');
+                return;
+            }
+            if (!displayName || displayName.length > 50) {
+                showToast('Nama tampilan wajib diisi dan maksimal 50 karakter.');
+                return;
+            }
+            if (password && password.length < 12) {
+                showToast('Password minimal harus 12 karakter.');
+                return;
+            }
+            if (password !== confirmation) {
+                showToast('Konfirmasi password tidak cocok.');
+                return;
+            }
+            if (photoFile && clearPhoto) {
+                showToast('Pilih foto baru atau centang hapus foto, jangan keduanya.');
+                return;
+            }
+            try {
+                await adminUsersReady;
+                await adminSessionReady;
+                const currentAccount = adminUsers.find(account => account.id === currentAdminProfile.id);
+                if (!currentAccount) throw new Error('Profil Admin tidak ditemukan. Muat ulang CPanel dan coba lagi.');
+                await window.DitzzData.reauthenticate(currentPassword);
+                if (adminUsers.some(account => account.username.toLowerCase() === username.toLowerCase() && account.username !== currentAccount.username)) {
+                    showToast('Username sudah digunakan.');
+                    return;
+                }
+                let photoUrl = currentAccount.profilePhoto || '';
+                if (clearPhoto) {
+                    photoUrl = '';
+                } else if (photoFile) {
+                    photoUrl = await window.DitzzData.uploadProfilePhoto(photoFile, username);
+                }
+                const updatedAccount = await window.DitzzData.updateAdminUser({
+                    id: currentAccount.id,
+                    username,
+                    displayName,
+                    role: currentAccount.role,
+                    password,
+                    avatarUrl: photoUrl
+                });
+                const updatedUsers = adminUsers.map(account => account.id === currentAccount.id ? updatedAccount : account);
+                adminUsers = updatedUsers;
+                sessionStorage.setItem('ditzz_admin_user', username);
+                sessionStorage.setItem('ditzz_admin_id', updatedAccount.id);
+                currentAdminProfile = updatedAccount;
+                updateAdminIdentity(updatedAccount);
+                document.getElementById('securityCurrentPassword').value = '';
+                document.getElementById('securityNewPassword').value = '';
+                document.getElementById('securityConfirmPassword').value = '';
+                document.getElementById('securityProfilePhoto').value = '';
+                document.getElementById('securityClearProfilePhoto').checked = false;
+                renderAdminUsers();
+                showToast('Profil akun berhasil diperbarui.');
+            } catch (error) {
+                showToast(profileSaveErrorMessage(error, 'Kredensial tidak dapat disimpan.'));
+            }
+        });
+
+        document.getElementById('saveFeatureStatusBtn').addEventListener('click', async () => {
+            appConfig.featureStatus = {
+                home: document.getElementById('featureHomeStatus').value,
+                about: document.getElementById('featureAboutStatus').value,
+                store: document.getElementById('featureStoreStatus').value,
+                contact: document.getElementById('featureContactStatus').value,
+                music: document.getElementById('featureMusicStatus').value,
+                updates: document.getElementById('featureUpdatesStatus').value,
+                events: document.getElementById('featureEventsStatus').value,
+                gallery: document.getElementById('featureGalleryStatus').value,
+                faq: document.getElementById('featureFaqStatus').value,
+                community: document.getElementById('featureCommunityStatus').value,
+                guide: document.getElementById('featureGuideStatus').value
+            };
+            appConfig.featureStatusMessage = document.getElementById('featureStatusMessage').value.trim();
+            try {
+                await window.DitzzData.saveConfig(appConfig);
+                showToast('Status fitur diperbarui di Supabase.');
+            } catch (error) {
+                showToast(error.message || 'Status fitur gagal disimpan.', 'error');
+            }
+        });
+
+        document.getElementById('saveApprovedVisitorsBtn').addEventListener('click', async () => {
+            appConfig.approvedVisitors = document.getElementById('cfgApprovedVisitors').value
+                .split(/\r?\n/)
+                .map(name => name.trim())
+                .filter(Boolean);
+            try {
+                await window.DitzzData.saveConfig(appConfig);
+            } catch (error) {
+                showToast(error.message || 'Daftar persetujuan gagal disimpan.', 'error');
+                return;
+            }
+            const block = readStoredVisitorBlock();
+            if (block && appConfig.approvedVisitors.some(name => normalizeConfiguredVisitorName(name) === normalizeConfiguredVisitorName(block.name))) {
+                localStorage.removeItem('ditzz_visitor_permanent_block');
+                localStorage.removeItem('ditzz_visitor_pending_approval');
+                updateBlockedVisitorStatus();
+            }
+            showToast('Daftar persetujuan nama disimpan di Supabase.');
+        });
+
+        function normalizeConfiguredVisitorName(name) {
+            return String(name || '').normalize('NFKC').toLocaleLowerCase('id-ID').replace(/[^\p{L}\p{N}]/gu, '');
+        }
+
+        function normalizeConfiguredVisitorTerm(term) {
+            return String(term || '').normalize('NFKC').toLocaleLowerCase('id-ID').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+        }
+
+        function readBlockedVisitorTerms() {
+            const terms = document.getElementById('cfgBlockedVisitorTerms').value
+                .split(/\r?\n/)
+                .map(term => term.trim())
+                .filter(Boolean);
+            const uniqueTerms = [];
+            const seenTerms = new Set();
+            terms.forEach(term => {
+                const normalized = normalizeConfiguredVisitorTerm(term);
+                if (!normalized || seenTerms.has(normalized)) return;
+                seenTerms.add(normalized);
+                uniqueTerms.push(term);
+            });
+            return uniqueTerms;
+        }
+
+        function readStoredVisitorBlock() {
+            const stored = localStorage.getItem('ditzz_visitor_permanent_block');
+            if (!stored) return null;
+            try {
+                const block = JSON.parse(stored);
+                if (!block || typeof block.name !== 'string') return null;
+                const normalizedTerm = normalizeConfiguredVisitorName(block.term || '');
+                if (TEMPORARY_VIOLATION_TERMS.some(term => normalizeConfiguredVisitorName(term) === normalizedTerm)) {
+                    localStorage.removeItem('ditzz_visitor_permanent_block');
+                    localStorage.removeItem('ditzz_visitor_pending_approval');
+                    localStorage.removeItem('ditzz_visitor_lock_until');
+                    return null;
+                }
+                return block;
+            } catch (error) {
+                console.warn('Blokir visitor lokal tidak dapat dibaca.', error);
+                return null;
+            }
+        }
+
+        function updateBlockedVisitorStatus() {
+            const block = readStoredVisitorBlock();
+            document.getElementById('blockedVisitorStatus').textContent = block
+                ? `Blokir aktif pada perangkat ini: ${block.name}${block.term ? ` (entri: ${block.term})` : ''}.`
+                : 'Tidak ada blokir visitor pada perangkat ini.';
+            renderBlockedVisitorManager(block);
+        }
+
+        function renderBlockedVisitorManager(block) {
+            const visitorBlock = block || readStoredVisitorBlock();
+            const emptyMessage = document.getElementById('blockedVisitorManagerEmpty');
+            const table = document.getElementById('blockedVisitorManagerTable');
+            const list = document.getElementById('blockedVisitorManagerList');
+            list.replaceChildren();
+            emptyMessage.hidden = Boolean(visitorBlock);
+            table.hidden = !visitorBlock;
+            if (!visitorBlock) return;
+
+            const row = document.createElement('tr');
+            const nameCell = document.createElement('td');
+            nameCell.textContent = visitorBlock.name;
+            const termCell = document.createElement('td');
+            termCell.textContent = visitorBlock.term || '—';
+            const dateCell = document.createElement('td');
+            const timestamp = Date.parse(visitorBlock.createdAt || '');
+            dateCell.textContent = Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString('id-ID') : 'Tidak tersedia';
+            const actionsCell = document.createElement('td');
+            const unblockButton = document.createElement('button');
+            unblockButton.type = 'button';
+            unblockButton.className = 'action-btn';
+            unblockButton.textContent = 'BUKA BLOKIR';
+            unblockButton.addEventListener('click', () => releaseVisitorBlock(false));
+            const approveButton = document.createElement('button');
+            approveButton.type = 'button';
+            approveButton.className = 'action-btn btn-save';
+            approveButton.style.marginLeft = '8px';
+            approveButton.textContent = 'SETUJUI & BUKA';
+            approveButton.addEventListener('click', () => releaseVisitorBlock(true));
+            actionsCell.append(unblockButton, approveButton);
+            row.append(nameCell, termCell, dateCell, actionsCell);
+            list.appendChild(row);
+        }
+
+        async function releaseVisitorBlock(approve) {
+            const block = readStoredVisitorBlock();
+            if (!block) {
+                updateBlockedVisitorStatus();
+                return;
+            }
+            try {
+                if (approve) {
+                    const approved = Array.isArray(appConfig.approvedVisitors) ? appConfig.approvedVisitors.slice() : [];
+                    const normalizedName = normalizeConfiguredVisitorName(block.name);
+                    if (!approved.some(name => normalizeConfiguredVisitorName(name) === normalizedName)) {
+                        approved.push(block.name);
+                    }
+                    appConfig.approvedVisitors = approved;
+                    await window.DitzzData.saveConfig(appConfig);
+                    document.getElementById('cfgApprovedVisitors').value = approved.join('\n');
+                }
+                localStorage.removeItem('ditzz_visitor_permanent_block');
+                localStorage.removeItem('ditzz_visitor_pending_approval');
+                localStorage.removeItem('ditzz_visitor_lock_until');
+            } catch (error) {
+                console.error('Visitor block could not be updated.', error);
+                showToast('Perubahan blokir gagal disimpan. Periksa ruang penyimpanan browser.', 'error');
+                return;
+            }
+            updateBlockedVisitorStatus();
+            showToast(approve
+                ? `Blokir dibuka dan ${block.name} dimasukkan ke daftar persetujuan.`
+                : `Blokir ${block.name} telah dibuka.`, 'notification');
+        }
+
+        document.getElementById('saveBlockedVisitorTermsBtn').addEventListener('click', async () => {
+            appConfig.blockedVisitorTerms = migrateBlockedVisitorTerms(readBlockedVisitorTerms());
+            try {
+                await window.DitzzData.saveConfig(appConfig);
+                showToast('Daftar nama/kata terlarang disimpan di Supabase.');
+            } catch (error) {
+                showToast(error.message || 'Daftar blokir gagal disimpan.', 'error');
+            }
+        });
+
+        document.getElementById('clearVisitorBlockBtn').addEventListener('click', () => {
+            if (!confirm('Buka blokir visitor pada browser/perangkat ini?')) return;
+            releaseVisitorBlock(false);
+        });
+
+        async function loadGlobalVisitorBlocks() {
+            const emptyMessage = document.getElementById('globalVisitorBlockEmpty');
+            const table = document.getElementById('globalVisitorBlockTable');
+            const list = document.getElementById('globalVisitorBlockList');
+            try {
+                const blocks = await window.DitzzData.listVisitorBlocks();
+                list.replaceChildren();
+                emptyMessage.hidden = blocks.length > 0;
+                table.hidden = blocks.length === 0;
+                if (!blocks.length) {
+                    emptyMessage.textContent = 'Belum ada blokir global.';
+                    return;
+                }
+                blocks.forEach(block => {
+                    const row = document.createElement('tr');
+                    const name = document.createElement('td');
+                    name.textContent = block.username;
+                    const reason = document.createElement('td');
+                    reason.textContent = block.reason || '—';
+                    const date = document.createElement('td');
+                    date.textContent = new Date(block.created_at).toLocaleString('id-ID');
+                    const actions = document.createElement('td');
+                    const unblock = document.createElement('button');
+                    unblock.type = 'button';
+                    unblock.className = 'btn-table danger';
+                    unblock.textContent = 'BUKA BLOKIR';
+                    unblock.addEventListener('click', async () => {
+                        if (!confirm(`Buka blokir global untuk "${block.username}"?`)) return;
+                        try {
+                            await window.DitzzData.removeVisitorBlock(block.id);
+                            await loadGlobalVisitorBlocks();
+                            showToast(`Blokir global ${block.username} dibuka.`);
+                        } catch (error) {
+                            showToast(error.message || 'Blokir global tidak dapat dibuka.', 'error');
+                        }
+                    });
+                    actions.appendChild(unblock);
+                    row.append(name, reason, date, actions);
+                    list.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Global visitor blocks could not be loaded.', error);
+                table.hidden = true;
+                emptyMessage.hidden = false;
+                emptyMessage.textContent = `Daftar blokir global gagal dimuat: ${error.message}`;
+            }
+        }
+
+        document.getElementById('globalVisitorBlockForm').addEventListener('submit', async event => {
+            event.preventDefault();
+            const visitorName = document.getElementById('globalVisitorBlockName').value.trim();
+            const reason = document.getElementById('globalVisitorBlockReason').value.trim();
+            if (!visitorName || !normalizeConfiguredVisitorName(visitorName)) {
+                showToast('Masukkan username visitor yang valid.', 'error');
+                return;
+            }
+            try {
+                await window.DitzzData.addVisitorBlock(visitorName, reason);
+                event.currentTarget.reset();
+                await loadGlobalVisitorBlocks();
+                showToast(`${visitorName} diblokir di semua perangkat.`);
+            } catch (error) {
+                showToast(error.message || 'Visitor tidak dapat diblokir.', 'error');
+            }
+        });
+        document.addEventListener('ditzz:visitor-blocks-changed', loadGlobalVisitorBlocks);
+        loadGlobalVisitorBlocks();
+        document.getElementById('refreshDatabaseBtn').addEventListener('click', async () => {
+            const details = document.getElementById('databaseSyncDetails');
+            details.textContent = 'Memuat konfigurasi dan katalog dari Supabase...';
+            try {
+                const row = await window.DitzzData.refresh();
+                details.textContent = row && row.updated_at
+                    ? `Data terakhir diperbarui: ${new Date(row.updated_at).toLocaleString('id-ID')}.`
+                    : 'Database tersambung; belum ada perubahan yang disimpan.';
+            } catch (error) {
+                details.textContent = `Sinkronisasi gagal: ${error.message}`;
+                showToast(error.message || 'Database tidak dapat disinkronkan.', 'error');
+            }
+        });
+        document.getElementById('importLegacyDataBtn').addEventListener('click', async () => {
+            if (!confirm('Impor konfigurasi, produk, dan pesan lokal ke Supabase? Data remote yang sudah ada tidak akan ditimpa.')) return;
+            const button = document.getElementById('importLegacyDataBtn');
+            button.disabled = true;
+            try {
+                const imported = await window.DitzzData.migrateLocalData({
+                    config: appConfig,
+                    products: storeProducts
+                });
+                showToast(imported.length
+                    ? `Data berhasil diimpor: ${imported.join(', ')}.`
+                    : 'Tidak ada data lokal baru untuk diimpor.');
+            } catch (error) {
+                console.error('Legacy local data import failed.', error);
+                showToast(error.message || 'Data lokal tidak dapat diimpor.', 'error');
+            } finally {
+                button.disabled = false;
+            }
+        });
+        window.DitzzData.ready.then(() => {
+            if (window.DitzzData.status === 'connected') {
+                document.getElementById('databaseSyncDetails').textContent = 'Realtime aktif. Perubahan dari CPanel akan dimuat otomatis di halaman visitor.';
+            }
+        });
+
+        window.addEventListener('storage', event => {
+            if (event.key === 'ditzz_visitor_permanent_block') updateBlockedVisitorStatus();
+        });
+
+        /* ===== TOAST NOTIFICATION ===== */
+        let cpanelToastTimer = 0;
+        function showToast(text, soundType) {
+            const toast = document.getElementById('cpanelToast');
+            document.getElementById('toastText').textContent = text;
+            toast.classList.add('show');
+            window.clearTimeout(cpanelToastTimer);
+            const selectedSound = soundType || (/gagal|tidak dapat|error|salah|invalid/i.test(text) ? 'error' : 'notification');
+            const soundPlayback = window.DitzzSounds ? window.DitzzSounds.play(selectedSound, 3500) : 0;
+            cpanelToastTimer = window.setTimeout(() => {
+                toast.classList.remove('show');
+                if (window.DitzzSounds) window.DitzzSounds.stop(soundPlayback);
+            }, 3500);
+        }
+
+        /* ===== TAB SWITCHING ===== */
+        function cpanelPreviewUrl(url) {
+            const previewUrl = new URL(url, window.location.href);
+            previewUrl.searchParams.set('cpanelPreview', '1');
+            return previewUrl.href;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.menu-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.tab === tabId);
+            });
+            document.querySelectorAll('.tab-pane').forEach(el => {
+                el.classList.toggle('active', el.id === 'pane-' + tabId);
+            });
+            sidebar.classList.remove('mobile-open');
+            document.getElementById('sidebarBackdrop').classList.remove('active');
+            // If preview, refresh iframe src
+            if (tabId === 'preview') {
+                const select = document.getElementById('previewUrlSelect');
+                const iframe = document.getElementById('previewIframe');
+                const nextPreviewUrl = cpanelPreviewUrl(select.value);
+                if (iframe.src !== nextPreviewUrl) {
+                    iframe.src = nextPreviewUrl;
+                }
+            }
+        }
+
+        document.querySelectorAll('.sidebar-menu .menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = item.dataset.tab;
+                if (tab) switchTab(tab);
+            });
+        });
+
+        /* ===== SIDEBAR TOGGLE ===== */
+        const sidebar = document.getElementById('sidebar');
+        document.getElementById('sidebarToggleBtn').addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+        });
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+        function toggleMobileSidebar() {
+            sidebar.classList.toggle('mobile-open');
+            sidebarBackdrop.classList.toggle('active', sidebar.classList.contains('mobile-open'));
+        }
+        document.getElementById('mobileMenuBtn').addEventListener('click', toggleMobileSidebar);
+        sidebarBackdrop.addEventListener('click', toggleMobileSidebar);
+
+        /* ===== REAL-TIME LIVE PREVIEW CONTROLS ===== */
+        const previewIframe = document.getElementById('previewIframe');
+        const previewWrapper = document.getElementById('previewIframeWrapper');
+
+        document.getElementById('previewUrlSelect').addEventListener('change', function() {
+            previewIframe.src = cpanelPreviewUrl(this.value);
+        });
+
+        document.getElementById('refreshPreviewBtn').addEventListener('click', () => {
+            previewIframe.contentWindow.location.reload();
+            showToast('Live preview reloaded!');
+        });
+
+        document.querySelectorAll('.device-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                previewWrapper.style.width = btn.dataset.width;
+            });
+        });
+
+        /* ===== PRODUCT CATALOG MANAGEMENT ===== */
+        const DEFAULT_PRODUCTS = [
+            { id:1, name:'Premium VPN Access', cat:'security', price:150000, rating:5, stock:'in', icon:'fa-shield-virus', desc:'Military-grade VPN with 500+ servers worldwide. Zero-log policy, kill switch, and split tunneling included.' },
+            { id:2, name:'Game Top-Up Credits', cat:'gaming', price:50000, rating:4, stock:'in', icon:'fa-gamepad', desc:'Universal game credits compatible with major platforms. Instant delivery to your account.' },
+            { id:3, name:'Cloud Storage Pro', cat:'cloud', price:200000, rating:5, stock:'in', icon:'fa-cloud-upload-alt', desc:'2TB encrypted cloud storage with end-to-end encryption. Access from any device, automatic backup.' },
+            { id:4, name:'Website Templates', cat:'development', price:350000, rating:4, stock:'in', icon:'fa-code', desc:'Collection of 50+ premium responsive website templates. HTML5, CSS3, JavaScript.' },
+            { id:5, name:'Script Bot Package', cat:'automation', price:500000, rating:5, stock:'limited', icon:'fa-robot', desc:'Advanced automation bot scripts for social media, web scraping, and data processing.' },
+            { id:6, name:'Social Media Tools', cat:'automation', price:175000, rating:4, stock:'in', icon:'fa-share-alt', desc:'Complete social media management toolkit. Scheduling, analytics, auto-posting, and growth tools.' },
+            { id:7, name:'Design Assets Pack', cat:'design', price:250000, rating:5, stock:'in', icon:'fa-paint-brush', desc:'10,000+ design assets including icons, illustrations, mockups, fonts, and textures.' },
+            { id:8, name:'Developer Toolkit', cat:'development', price:450000, rating:5, stock:'limited', icon:'fa-terminal', desc:'Professional developer toolkit with IDE extensions, CLI tools, debugging utilities.' },
+            { id:9, name:'Streaming Premium', cat:'streaming', price:75000, rating:4, stock:'in', icon:'fa-play-circle', desc:'Premium streaming service access for music and video. Ad-free experience, offline downloads.' },
+            { id:10, name:'Security Suite', cat:'security', price:600000, rating:5, stock:'limited', icon:'fa-user-shield', desc:'Enterprise-grade cybersecurity suite including firewall, antivirus, intrusion detection.' },
+            { id:11, name:'SEO Tools Pro', cat:'seo', price:300000, rating:4, stock:'in', icon:'fa-chart-line', desc:'Complete SEO toolkit with keyword research, backlink analysis, rank tracking, site audit.' },
+            { id:12, name:'Database Manager', cat:'development', price:400000, rating:5, stock:'in', icon:'fa-database', desc:'Universal database management tool supporting MySQL, PostgreSQL, MongoDB, Redis, and SQLite.' }
+        ];
+
+        function loadProducts() {
+            const stored = localStorage.getItem('ditzz_products');
+            if (stored) {
+                try { return JSON.parse(stored); }
+                catch(e) { return DEFAULT_PRODUCTS; }
+            }
+            return DEFAULT_PRODUCTS;
+        }
+
+        let storeProducts = loadProducts();
+
+        function renderProductsTable() {
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = '';
+            storeProducts.forEach(p => {
+                const stockBadge = p.stock === 'in' ? '<span class="badge-status badge-in">IN STOCK</span>'
+                                 : p.stock === 'limited' ? '<span class="badge-status badge-limited">LIMITED</span>'
+                                 : '<span class="badge-status badge-out">SOLD OUT</span>';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>#${p.id}</td>
+                    <td><strong>${p.name}</strong></td>
+                    <td><span style="color:var(--accent-cyan); font-size:0.7rem;">${p.cat.toUpperCase()}</span></td>
+                    <td>Rp ${p.price.toLocaleString('id-ID')}</td>
+                    <td>${stockBadge}</td>
+                    <td>
+                        <button class="btn-table" onclick="editProduct(${p.id})"><i class="fas fa-edit"></i> Edit</button>
+                        <button class="btn-table danger" onclick="deleteProduct(${p.id})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('dashProducts').textContent = storeProducts.length;
+        }
+        renderProductsTable();
+
+        // Product Modal Logic
+        const prodModal = document.getElementById('productModal');
+        document.getElementById('openAddProductModal').addEventListener('click', () => {
+            document.getElementById('productForm').reset();
+            document.getElementById('prodFormId').value = '';
+            document.getElementById('productModalTitle').innerHTML = '<i class="fas fa-plus"></i> TAMBAH PRODUK BARU';
+            prodModal.classList.add('open');
+        });
+        document.getElementById('closeProductModalBtn').addEventListener('click', () => prodModal.classList.remove('open'));
+
+        window.editProduct = function(id) {
+            const p = storeProducts.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('prodFormId').value = p.id;
+            document.getElementById('prodFormName').value = p.name;
+            document.getElementById('prodFormCat').value = p.cat;
+            document.getElementById('prodFormPrice').value = p.price;
+            document.getElementById('prodFormStock').value = p.stock;
+            document.getElementById('prodFormIcon').value = p.icon;
+            document.getElementById('prodFormDesc').value = p.desc;
+            document.getElementById('productModalTitle').innerHTML = '<i class="fas fa-edit"></i> EDIT PRODUK #' + p.id;
+            prodModal.classList.add('open');
+        };
+
+        window.deleteProduct = async function(id) {
+            if (confirm('Hapus produk #' + id + ' dari database store?')) {
+                const nextProducts = storeProducts.filter(x => x.id !== id);
+                try {
+                    await window.DitzzData.saveProducts(nextProducts);
+                    storeProducts = nextProducts;
+                    renderProductsTable();
+                    showToast('Produk #' + id + ' berhasil dihapus dari Supabase.');
+                } catch (error) {
+                    showToast(error.message || 'Produk tidak dapat dihapus.', 'error');
+                }
+            }
+        };
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const idVal = document.getElementById('prodFormId').value;
+            const productData = {
+                name: document.getElementById('prodFormName').value.trim(),
+                cat: document.getElementById('prodFormCat').value,
+                price: parseInt(document.getElementById('prodFormPrice').value) || 0,
+                stock: document.getElementById('prodFormStock').value,
+                icon: document.getElementById('prodFormIcon').value.trim() || 'fa-box',
+                desc: document.getElementById('prodFormDesc').value.trim(),
+                rating: 5
+            };
+
+            const nextProducts = storeProducts.slice();
+            if (idVal) {
+                // Update
+                const idx = nextProducts.findIndex(x => x.id === parseInt(idVal));
+                if (idx !== -1) {
+                    nextProducts[idx] = Object.assign({}, nextProducts[idx], productData);
+                }
+            } else {
+                // Create
+                const newId = nextProducts.length ? Math.max(...nextProducts.map(x => x.id)) + 1 : 1;
+                productData.id = newId;
+                nextProducts.push(productData);
+            }
+
+            try {
+                await window.DitzzData.saveProducts(nextProducts);
+            } catch (error) {
+                showToast(error.message || 'Produk tidak dapat disimpan ke Supabase.', 'error');
+                return;
+            }
+            storeProducts = nextProducts;
+            renderProductsTable();
+            prodModal.classList.remove('open');
+            showToast('Produk berhasil disimpan ke katalog Supabase!');
+        });
+
+        /* ===== TRANSMISSIONS (MESSAGES) ===== */
+        async function loadMessages() {
+            const list = document.getElementById('messagesList');
+            let stored;
+            try {
+                stored = await window.DitzzData.loadMessages();
+            } catch (error) {
+                console.error('CPanel messages could not be loaded.', error);
+                list.textContent = `Pesan tidak dapat dimuat: ${error.message}`;
+                return;
+            }
+            const escapeHtml = value => String(value == null ? '' : value).replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+            if (stored.length === 0) {
+                list.innerHTML = `
+                    <div style="padding: 30px; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-dim);">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 10px; color: rgba(0,255,65,0.2);"></i>
+                        <div>BELUM ADA TRANSMISI BARU</div>
+                    </div>
+                `;
+                return;
+            }
+            list.innerHTML = stored.map((m, idx) => `
+                <div style="padding: 16px; background: rgba(8,9,12,0.8); border: 1px solid var(--border-color); border-left: 3px solid var(--accent-green);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <strong style="color:var(--accent-green); font-size:0.85rem;"><i class="fas fa-user-circle"></i> ${escapeHtml(m.name)} &lt;${escapeHtml(m.email)}&gt;</strong>
+                        <span style="font-size:0.7rem; color:var(--text-secondary);">${escapeHtml(m.date || 'Baru saja')}</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--accent-cyan); margin-bottom:6px;">VISITOR: ${escapeHtml(m.visitorUsername || 'UNKNOWN')}</div>
+                    <div style="font-size:0.75rem; color:var(--accent-cyan); margin-bottom:6px;">SUBJECT: ${escapeHtml(m.subject || 'GENERAL')}</div>
+                    <p style="font-size:0.8rem; color:var(--text-primary); line-height:1.5;">${escapeHtml(m.message)}</p>
+                </div>
+            `).join('');
+        }
+        loadMessages();
+
+        document.getElementById('clearMessagesBtn').addEventListener('click', async () => {
+            if (confirm('Bersihkan seluruh transmisi tersimpan?')) {
+                try {
+                    await window.DitzzData.clearMessages();
+                    await loadMessages();
+                    showToast('Seluruh pesan telah dibersihkan dari Supabase.');
+                } catch (error) {
+                    showToast(error.message || 'Pesan tidak dapat dihapus.', 'error');
+                }
+            }
+        });
+        document.addEventListener('ditzz:messages-changed', loadMessages);
+
+        /* ===== RESET DEFAULTS ===== */
+        document.getElementById('resetDefaultsBtn').addEventListener('click', async () => {
+            if (confirm('PERINGATAN TINGKAT TINGGI: Kembalikan seluruh konfigurasi dan produk ke setelan awal?')) {
+                try {
+                    await window.DitzzData.saveConfig(DEFAULT_CONFIG);
+                    await window.DitzzData.saveProducts(DEFAULT_PRODUCTS);
+                    appConfig = DEFAULT_CONFIG;
+                    storeProducts = DEFAULT_PRODUCTS;
+                    populateFields();
+                    renderProductsTable();
+                    showToast('Sistem direset ke konfigurasi awal Supabase.');
+                } catch (error) {
+                    showToast(error.message || 'Reset database gagal.', 'error');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

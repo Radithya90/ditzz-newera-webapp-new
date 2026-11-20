@@ -1,0 +1,80 @@
+@media (hover: hover) and (pointer: fine) {
+    html,
+    body,
+    body * {
+        cursor: auto !important;
+    }
+
+    @media (hover: none), (pointer: coarse) {
+        #customCursor,
+        #cursorMain,
+        #cursorDot,
+        .custom-cursor,
+        .cursor-main,
+        .cursor-dot {
+            display: none !important;
+        }
+    }
+
+    a,
+    button,
+    [role="button"],
+    input[type="button"],
+    input[type="submit"],
+    select,
+    label[for] {
+        cursor: pointer !important;
+    }
+
+}
+
+a,
+button,
+input,
+select,
+textarea,
+.card-panel,
+.stat-card,
+.menu-item,
+.product-card,
+.team-card,
+.feature-card {
+    transition: border-color .22s ease, box-shadow .22s ease, filter .22s ease, transform .22s ease;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid #00ffff;
+    outline-offset: 3px;
+}
+
+@media (hover: hover) {
+    a:hover,
+    button:not(:disabled):hover,
+    .card-panel:hover,
+    .stat-card:hover,
+    .product-card:hover,
+    .feature-card:hover {
+        filter: brightness(1.1);
+    }
+}
+
+@keyframes fullscreenPulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(0, 255, 255, .16); }
+    50% { box-shadow: 0 0 36px rgba(0, 255, 255, .3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
