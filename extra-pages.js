@@ -310,6 +310,7 @@
         frame.title = 'Pemutar musik website';
         frame.allow = 'autoplay; encrypted-media; picture-in-picture';
         frame.allowFullscreen = true;
+        frame.referrerPolicy = 'strict-origin-when-cross-origin';
         const monitor = document.createElement('div');
         monitor.className = 'extra-audio-monitor';
         monitor.appendChild(frame);
@@ -376,6 +377,7 @@
             ? 80
             : Math.min(100, Math.max(0, parsedVolume));
         let frameReady = false;
+        let frameLoadSequence = 0;
         if (musicUnavailable) isPlaying = false;
         volume.value = String(volumeLevel);
 
@@ -401,16 +403,21 @@
 
         function setFrameSource() {
             frameReady = false;
+            frameLoadSequence += 1;
             frame.src = `https://www.youtube.com/embed/${encodeURIComponent(activeId)}?autoplay=${isPlaying ? 1 : 0}&start=${anchorSec}&loop=1&playlist=${encodeURIComponent(activeId)}&controls=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}&playsinline=1&volume=${volumeLevel}`;
         }
 
         frame.addEventListener('load', () => {
             frameReady = true;
-            if (!musicUnavailable && isPlaying) {
-                command('unMute');
-                command('setVolume', [volumeLevel]);
-                command('playVideo');
-            }
+            const sequence = frameLoadSequence;
+            [300, 800, 1500].forEach(delay => {
+                window.setTimeout(() => {
+                    if (sequence !== frameLoadSequence || musicUnavailable || !isPlaying) return;
+                    command('unMute');
+                    command('setVolume', [volumeLevel]);
+                    command('playVideo');
+                }, delay);
+            });
         });
 
         function renderPlayer() {

@@ -458,6 +458,12 @@
             padding: 9px 11px; border-radius: 3px; border-left: 2px solid var(--accent-red);
             font-weight: 600; text-shadow: 0 0 8px rgba(255,0,60,0.4);
         }
+        .visitor-privacy-note {
+            margin: 14px 0; padding: 12px 14px; border: 1px solid rgba(0, 229, 255, .36);
+            border-left: 3px solid var(--accent-cyan); border-radius: 5px;
+            background: rgba(0, 229, 255, .07); color: #d7faff;
+            font: 500 .9rem/1.6 'Rajdhani', sans-serif;
+        }
 
         /* Red Alarm Glitch Overlay */
         .alarm-screen-glitch {
@@ -577,7 +583,7 @@
             <div class="aso-icon"><i class="fas fa-play"></i></div>
             <div class="aso-title" id="fullscreenPromptTitle">MEMERIKSA MODE TAMPILAN</div>
             <div class="aso-sub" id="fullscreenHint">
-                Sistem sedang memeriksa status layar penuh. Landscape disarankan agar tampilan lebih lega, tetapi tidak wajib.
+                Mode layar penuh membuat animasi, efek, dan detail visual terlihat lebih leluasa serta imersif. Sangat disarankan untuk pengalaman terbaik; landscape juga disarankan, tetapi tidak wajib.
             </div>
             <div style="font-size: 0.7rem; color: var(--accent-cyan); margin-bottom: 20px; font-family:'Share Tech Mono';">
                 <i class="fab fa-youtube"></i> LAGU PEMBUKA PILIHAN ADMIN: <span id="currentStreamLabel">DITZZ THEME</span>
@@ -733,6 +739,9 @@
                 </div>
             </div>
 
+            <aside class="visitor-privacy-note" role="note">
+                <strong>PEMBERITAHUAN PRIVASI:</strong> Nama pilihan, halaman yang dikunjungi, hasil pemeriksaan aturan, status dukungan fullscreen browser, penggunaan fullscreen, dan IP yang sudah disamarkan (IPv4 /24 atau IPv6 /48) dapat disimpan di CPanel. Log lebih lama dari 30 hari dijadwalkan untuk dihapus melalui Vercel Cron. Password, isi ketikan, dan aktivitas di luar website tidak direkam.
+            </aside>
             <div class="agreement-box">
                 <input type="checkbox" id="agreementCheckbox" class="agreement-checkbox">
                 <label for="agreementCheckbox" class="agreement-text" id="agreementLabel">
@@ -969,42 +978,55 @@
             const title = document.getElementById('fullscreenPromptTitle');
             const hint = document.getElementById('fullscreenHint');
             const button = document.getElementById('startAudioBtn');
+            const fullscreenMethod = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+            if (!isCpanelPreview && !fullscreenMethod) {
+                title.textContent = 'MODE LAYAR PENUH TIDAK DIDUKUNG';
+                hint.textContent = 'Browser ini tidak mendukung mode layar penuh, sehingga loading belum dapat dimulai. Coba browser lain agar animasi, efek, dan detail website tampil lebih leluasa dan imersif. Landscape disarankan, tetapi tidak wajib.';
+                button.textContent = '[ FULLSCREEN TIDAK TERSEDIA ]';
+                button.disabled = true;
+                return;
+            }
+            button.disabled = false;
             if (isCpanelPreview) {
                 title.textContent = 'PRATINJAU CPANEL SIAP';
                 hint.textContent = 'Mode pratinjau tidak mewajibkan fullscreen. Tekan lanjutkan untuk memulai pratinjau.';
                 button.textContent = '[ MULAI PRATINJAU ]';
-            } else if (document.fullscreenElement) {
+            } else if (document.fullscreenElement || document.webkitFullscreenElement) {
                 title.textContent = 'MODE LAYAR PENUH AKTIF';
-                hint.textContent = 'Layar penuh sudah aktif. Tekan lanjutkan untuk memulai website. Landscape disarankan agar tampilan lebih lega, tetapi tidak wajib.';
+                hint.textContent = 'Layar penuh aktif. Animasi, efek, dan detail website kini terlihat lebih leluasa dan imersif. Landscape disarankan agar makin lega, tetapi tidak wajib.';
                 button.textContent = '[ LANJUTKAN ]';
             } else {
                 title.textContent = 'SEBELUM MASUK // LAYAR PENUH WAJIB';
-                hint.textContent = 'Tekan Lanjutkan dan izinkan mode layar penuh agar dapat menggunakan website. Jika layar penuh ditutup, Anda akan kembali ke halaman awal. Landscape disarankan agar tampilan lebih lega, tetapi tidak wajib.';
+                hint.textContent = 'Tekan Lanjutkan dan izinkan mode layar penuh. Tampilan ini membuat animasi, efek, dan detail website terasa lebih lega dan imersif. Jika layar penuh ditutup, Anda akan kembali ke halaman awal. Landscape disarankan, tetapi tidak wajib.';
                 button.textContent = '[ LANJUTKAN DALAM LAYAR PENUH ]';
             }
         }
 
         window.setTimeout(updateFullscreenPrompt, 500);
         document.addEventListener('fullscreenchange', updateFullscreenPrompt);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenPrompt);
 
         // Engage on button click
         async function requestFullscreenForBoot() {
             if (isCpanelPreview) return true;
-            if (!document.fullscreenElement) {
-                if (!document.documentElement.requestFullscreen) {
+            const isFullscreen = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+            if (!isFullscreen()) {
+                const requestFullscreen = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+                if (!requestFullscreen) {
                     document.getElementById('fullscreenHint').textContent = 'Browser ini tidak mendukung mode layar penuh. Gunakan browser yang mendukung fullscreen; loading belum dimulai.';
+                    document.getElementById('startAudioBtn').disabled = true;
                     if (window.DitzzSounds) window.DitzzSounds.play('error', 2200);
                     return false;
                 }
                 try {
-                    await document.documentElement.requestFullscreen();
+                    await requestFullscreen.call(document.documentElement);
                 } catch (error) {
                     document.getElementById('fullscreenHint').textContent = 'Mode layar penuh belum diizinkan. Izinkan permintaan fullscreen dari browser untuk melanjutkan.';
                     if (window.DitzzSounds) window.DitzzSounds.play('error', 2200);
                     return false;
                 }
             }
-            return Boolean(document.fullscreenElement);
+            return isFullscreen();
         }
 
         document.getElementById('startAudioBtn').addEventListener('click', async () => {
@@ -1015,6 +1037,13 @@
             isStarted = true;
             document.getElementById('audioStartOverlay').classList.add('hidden');
             loadYouTubeAudio(currentYtId, currentStartSec);
+            window.setTimeout(() => {
+                const monitor = document.getElementById('ytMonitor');
+                const toggle = document.getElementById('toggleMonitorBtn');
+                if (!monitor || musicFeatureUnavailable) return;
+                monitor.classList.add('minimized');
+                if (toggle) toggle.textContent = '+';
+            }, 6000);
             startProgressSequence();
         });
 
@@ -1246,6 +1275,17 @@
             }, 20000);
         }
 
+        async function recordVisitorActivity(eventType, visitorName, violationReason) {
+            if (!window.DitzzData || typeof window.DitzzData.recordVisitorEvent !== 'function') return false;
+            try {
+                await window.DitzzData.recordVisitorEvent(eventType, visitorName, violationReason);
+                return true;
+            } catch (error) {
+                console.warn('Visitor activity could not be recorded.', error);
+                return false;
+            }
+        }
+
         async function validateInputName(showWarning = false) {
             const raw = customVisInput.value.trim();
             if (raw.length === 0) {
@@ -1260,6 +1300,7 @@
 
             try {
                 if (await window.DitzzData.checkVisitorBlocked(raw)) {
+                    recordVisitorActivity('name_violation', raw, 'blocked_name');
                     nameFeedback.className = 'name-status-feedback error';
                     nameFeedback.textContent = 'PELANGGARAN: Username masuk daftar blokir global dan tidak dapat digunakan.';
                     customVisInput.classList.add('error');
@@ -1283,11 +1324,14 @@
                 window.clearTimeout(alarmTimeout);
                 localStorage.removeItem('ditzz_visitor_lock_until');
                 alarmGlitch.classList.remove('active');
+                const blockSaved = await recordVisitorActivity('name_violation', raw, 'blocked_name');
                 nameFeedback.className = 'name-status-feedback error';
-                nameFeedback.textContent = 'PELANGGARAN: Nama cocok dengan daftar blokir. Akses halaman publik dihentikan sampai Admin/Keamanan membuka blokir.';
+                nameFeedback.textContent = blockSaved
+                    ? 'PELANGGARAN: Nama masuk daftar blokir global. Akses baru dapat dibuka kembali oleh Admin/Keamanan melalui CPanel.'
+                    : 'Nama ditolak, tetapi blokir global belum dapat disimpan. Periksa koneksi database dan coba lagi.';
                 customVisInput.classList.add('error');
                 isCustomNameValid = false;
-                window.DitzzSiteEffects.blockVisitor(raw, blockedTerm);
+                if (blockSaved) window.DitzzSiteEffects.blockVisitor(raw, blockedTerm);
                 checkAccessUnlocked();
                 return;
             }
@@ -1299,6 +1343,7 @@
                 isCustomNameValid = false;
                 if (showWarning) {
                     const hasKnownTerm = isTemporaryVisitorViolation(raw);
+                    recordVisitorActivity('name_violation', raw, hasKnownTerm ? 'inappropriate_name' : 'invalid_format');
                     triggerBreachAlarm(hasKnownTerm
                         ? 'Username berisi kata terlarang atau teks pengujian'
                         : 'Format username bukan nama orang yang dapat diterima');
@@ -1401,6 +1446,7 @@
                 : currentAutoName;
             try {
                 if (await window.DitzzData.checkVisitorBlocked(finalVisitorName)) {
+                    recordVisitorActivity('name_violation', finalVisitorName, 'blocked_name');
                     window.DitzzSiteEffects.blockVisitor(finalVisitorName, 'blokir global Supabase');
                     return;
                 }
@@ -1415,6 +1461,7 @@
 
             localStorage.setItem('ditzz_visitor_name', finalVisitorName);
             localStorage.setItem('ditzz_visitor_mode', chosenVisitorMode);
+            recordVisitorActivity('name_submitted', finalVisitorName);
             localStorage.setItem('ditzz_selected_track_id', selectedSongId);
             localStorage.setItem('ditzz_selected_track_name', selectedSongName);
             localStorage.setItem('ditzz_volume', '100');

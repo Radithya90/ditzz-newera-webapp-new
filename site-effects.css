@@ -68,6 +68,250 @@ textarea:focus-visible,
     50% { box-shadow: 0 0 36px rgba(0, 255, 255, .3); }
 }
 
+.ditzz-status-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200000;
+    display: grid;
+    place-items: center;
+    overflow: auto;
+    padding: clamp(18px, 5vw, 56px);
+    background:
+        radial-gradient(ellipse at 50% 15%, rgba(0, 220, 255, .16), transparent 55%),
+        linear-gradient(135deg, rgba(2, 6, 12, .97), rgba(8, 13, 23, .98));
+    color: #e8f4ff;
+    animation: ditzzStatusFade .4s ease both;
+}
+
+.ditzz-status-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: .18;
+    pointer-events: none;
+}
+
+.ditzz-status-panel {
+    position: relative;
+    z-index: 1;
+    width: min(760px, 100%);
+    padding: clamp(24px, 5vw, 48px);
+    border: 1px solid rgba(0, 238, 255, .38);
+    border-radius: 12px;
+    background: rgba(3, 9, 17, .88);
+    box-shadow: 0 0 60px rgba(0, 229, 255, .16), inset 0 0 32px rgba(0, 229, 255, .04);
+    backdrop-filter: blur(12px);
+    animation: ditzzStatusRise .55s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.ditzz-status-kicker,
+.ditzz-status-countdown {
+    color: #38e8ff;
+    font: 600 .78rem/1.6 'Share Tech Mono', monospace;
+    letter-spacing: .12em;
+}
+
+.ditzz-status-panel h1 {
+    margin: 12px 0;
+    color: #f3fbff;
+    font: 800 clamp(1.5rem, 5vw, 2.6rem)/1.2 'Orbitron', sans-serif;
+}
+
+.ditzz-status-message,
+.ditzz-status-plan,
+.ditzz-status-meta {
+    color: #c5d3e2;
+    font: 500 1.05rem/1.7 'Rajdhani', sans-serif;
+    white-space: pre-wrap;
+}
+
+.ditzz-status-plan {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-left: 2px solid #00e5ff;
+    background: rgba(0, 229, 255, .07);
+}
+
+.ditzz-status-meta {
+    margin-top: 12px;
+    color: #9db1c5;
+    font-size: .9rem;
+}
+
+.ditzz-status-countdown {
+    margin-top: 22px;
+}
+
+.ditzz-status-back,
+.ditzz-status-music {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin: 8px 10px 0 0;
+    padding: 10px 16px;
+    border: 1px solid #00e5ff;
+    border-radius: 5px;
+    background: rgba(0, 229, 255, .09);
+    color: #d7fbff;
+    font: 700 .8rem/1.3 'Share Tech Mono', monospace;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
+}
+
+.ditzz-status-back:hover,
+.ditzz-status-music:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: rgba(0, 229, 255, .18);
+    box-shadow: 0 0 20px rgba(0, 229, 255, .18);
+}
+
+.ditzz-status-music:disabled {
+    opacity: .7;
+    cursor: default;
+}
+
+.ditzz-status-audio {
+    display: block;
+    width: min(420px, 100%);
+    height: 80px;
+    margin: 14px 0;
+    border: 1px solid rgba(0, 229, 255, .3);
+}
+
+.ditzz-music-status {
+    position: fixed;
+    top: clamp(12px, 2vw, 22px);
+    left: 50%;
+    z-index: 180000;
+    display: grid;
+    gap: 6px;
+    width: min(560px, calc(100vw - 24px));
+    padding: 13px 16px;
+    overflow: hidden;
+    transform: translateX(-50%);
+    border: 1px solid rgba(0, 229, 255, .42);
+    border-radius: 7px;
+    background: rgba(3, 10, 18, .94);
+    color: #d7ecf6;
+    font: 500 .9rem/1.45 'Rajdhani', sans-serif;
+    box-shadow: 0 0 25px rgba(0, 229, 255, .12);
+    animation: ditzzStatusRise .35s ease both;
+}
+
+.ditzz-music-status > *:not(.ditzz-music-status-video) {
+    position: relative;
+    z-index: 1;
+}
+
+.ditzz-music-status strong,
+.ditzz-music-status-countdown {
+    color: #4cecff;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .04em;
+}
+
+.ditzz-music-status-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: .14;
+    pointer-events: none;
+}
+
+.ditzz-music-status iframe {
+    position: relative;
+    z-index: 1;
+    width: min(360px, 100%);
+    height: 70px;
+    border: 1px solid rgba(0, 229, 255, .3);
+}
+
+.ditzz-music-status button {
+    position: relative;
+    z-index: 1;
+    justify-self: start;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid #00e5ff;
+    border-radius: 4px;
+    background: rgba(0, 229, 255, .09);
+    color: #d7fbff;
+    font: 700 .72rem 'Share Tech Mono', monospace;
+}
+
+#ditzzLiveAnnouncement {
+    position: fixed;
+    right: clamp(12px, 3vw, 28px);
+    bottom: clamp(12px, 3vw, 28px);
+    z-index: 190000;
+    width: min(440px, calc(100vw - 24px));
+    max-height: min(80vh, 680px);
+    overflow: auto;
+    padding: 20px;
+    border: 1px solid rgba(0, 229, 255, .48);
+    border-radius: 10px;
+    background: rgba(4, 10, 18, .96);
+    color: #e8f4ff;
+    box-shadow: 0 0 35px rgba(0, 229, 255, .18);
+    animation: ditzzStatusRise .35s ease both;
+}
+
+#ditzzLiveAnnouncement h2 {
+    margin: 0 0 10px;
+    color: #4cecff;
+    font: 700 1rem/1.4 'Orbitron', sans-serif;
+}
+
+#ditzzLiveAnnouncement p {
+    white-space: pre-wrap;
+    line-height: 1.55;
+}
+
+#ditzzLiveAnnouncement form {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+#ditzzLiveAnnouncement textarea {
+    width: 100%;
+    min-height: 78px;
+    padding: 10px;
+    border: 1px solid rgba(0, 229, 255, .35);
+    border-radius: 5px;
+    background: #08111b;
+    color: #effaff;
+    font: inherit;
+    resize: vertical;
+}
+
+#ditzzLiveAnnouncement button {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid #00e5ff;
+    border-radius: 5px;
+    background: rgba(0, 229, 255, .1);
+    color: #d7fbff;
+    font: 700 .75rem 'Share Tech Mono', monospace;
+}
+
+@keyframes ditzzStatusFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes ditzzStatusRise {
+    from { opacity: 0; transform: translateY(14px) scale(.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

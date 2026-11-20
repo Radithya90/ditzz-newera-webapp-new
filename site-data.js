@@ -86,6 +86,341 @@
         return row;
     }
 
+    function currentPageKey() {
+        const page = window.location.pathname.split('/').pop() || 'index.html';
+        return page.replace(/\.html$/i, '') || 'index';
+    }
+
+    function visitorSessionId() {
+        let sessionId = sessionStorage.getItem('ditzz_visitor_session_id');
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            sessionStorage.setItem('ditzz_visitor_session_id', sessionId);
+        }
+        return sessionId;
+    }
+
+    function safeVideoUrl(value) {
+        if (typeof value !== 'string' || !value.trim()) return '';
+        try {
+            const url = new URL(value.trim());
+            return url.protocol === 'https:' && /\.(mp4|webm|ogg)$/i.test(url.pathname) ? url.href : '';
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function renderStatusOverlay(id, title, presentation, details) {
+        if (document.getElementById(id) || !document.body) return;
+        const overlay = document.createElement('div');
+        overlay.id = id;
+        overlay.className = 'ditzz-status-overlay';
+        overlay.setAttribute('role', 'status');
+        overlay.setAttribute('aria-live', 'polite');
+
+        const videoUrl = safeVideoUrl(presentation.backgroundVideoUrl);
+        if (videoUrl) {
+            const video = document.createElement('video');
+            video.className = 'ditzz-status-video';
+            video.src = videoUrl;
+            video.autoplay = true;
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            overlay.appendChild(video);
+        }
+
+        const panel = document.createElement('section');
+        panel.className = 'ditzz-status-panel';
+        const kicker = document.createElement('p');
+        kicker.className = 'ditzz-status-kicker';
+        kicker.textContent = '// DITZZ NEWERA SYSTEM NOTICE';
+        const heading = document.createElement('h1');
+        heading.textContent = title;
+        const message = document.createElement('p');
+        message.className = 'ditzz-status-message';
+        message.textContent = presentation.message || 'Kami sedang menyiapkan pembaruan. Silakan kembali beberapa saat lagi.';
+        panel.append(kicker, heading, message);
+
+        if (presentation.repairPlan) {
+            const plan = document.createElement('p');
+            plan.className = 'ditzz-status-plan';
+            plan.textContent = `Yang sedang diperbaiki: ${presentation.repairPlan}`;
+            panel.appendChild(plan);
+        }
+        if (details && details.adminName) {
+            const administrator = document.createElement('p');
+            administrator.className = 'ditzz-status-meta';
+            const updatedAt = details.updatedAt && Number.isFinite(Date.parse(details.updatedAt))
+                ? ` — ${new Date(details.updatedAt).toLocaleString('id-ID')}`
+                : '';
+            administrator.textContent = `Diperbarui oleh ${details.adminName}${updatedAt}`;
+            panel.appendChild(administrator);
+        }
+
+        const countdown = document.createElement('p');
+        countdown.className = 'ditzz-status-countdown';
+        if (details && details.endsAt) {
+            const updateCountdown = () => {
+                const remainingMs = Date.parse(details.endsAt) - Date.now();
+                if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+                    countdown.textContent = 'Waktu perkiraan selesai tercapai; status menunggu pembaruan Admin.';
+                    window.clearInterval(countdownTimer);
+                    return;
+                }
+                const totalSeconds = Math.ceil(remainingMs / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                countdown.textContent = `PERKIRAAN KEMBALI: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            };
+            const countdownTimer = window.setInterval(updateCountdown, 1000);
+            updateCountdown();
+        } else {
+            countdown.textContent = 'Jadwal kembali akan diumumkan Admin.';
+        }
+        panel.appendChild(countdown);
+
+        const musicId = String(presentation.musicId || '');
+        if (/^[\w-]{11}$/.test(musicId)) {
+            const musicButton = document.createElement('button');
+            musicButton.className = 'ditzz-status-music';
+            musicButton.type = 'button';
+            musicButton.textContent = 'PUTAR AUDIO STATUS';
+            musicButton.addEventListener('click', () => {
+                let player = panel.querySelector('.ditzz-status-audio');
+                if (!player) {
+                    player = document.createElement('iframe');
+                    player.className = 'ditzz-status-audio';
+                    player.title = 'Audio informasi status';
+                    player.allow = 'autoplay; encrypted-media; picture-in-picture';
+                    player.referrerPolicy = 'strict-origin-when-cross-origin';
+                    panel.insertBefore(player, backLink);
+                }
+                player.src = `https://www.youtube.com/embed/${musicId}?autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+                musicButton.textContent = 'AUDIO STATUS AKTIF';
+                musicButton.disabled = true;
+            }, { once: true });
+            panel.appendChild(musicButton);
+        }
+
+        const backLink = document.createElement('a');
+        backLink.className = 'ditzz-status-back';
+        backLink.href = details && details.global ? '/index.html' : '/home.html';
+        backLink.textContent = 'KEMBALI KE HALAMAN UTAMA';
+        panel.appendChild(backLink);
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+    }
+
+    function applyGlobalSiteStatus(config) {
+        if (window.location.pathname.startsWith('/admin/')) return;
+        const status = config.siteStatus || {};
+        if (!['maintenance', 'offline'].includes(status.mode)) return;
+        renderStatusOverlay(
+            'ditzzGlobalSiteStatus',
+            status.title || (status.mode === 'offline' ? 'AKSES WEBSITE SEMENTARA DITUTUP' : 'WEBSITE SEDANG DIPERBAIKI'),
+            status,
+            { adminName: status.adminName, endsAt: status.endsAt, updatedAt: status.updatedAt, global: true }
+        );
+    }
+
+    function applyFeatureAvailability(config) {
+        if (window.location.pathname.startsWith('/admin/') || document.getElementById('ditzzGlobalSiteStatus')) return false;
+        const pageFeature = document.body.dataset.feature || document.body.dataset.extraPage || currentPageKey();
+        const feature = pageFeature === 'index' ? 'home' : pageFeature;
+        const status = (config.featureStatus || {})[feature] || 'available';
+        if (status === 'available') {
+            applyMusicFeatureStatus(config);
+            return false;
+        }
+        const presentation = (config.featurePresentation || {})[feature] || {};
+        const title = status === 'comingSoon' ? 'FITUR SEGERA HADIR' : 'FITUR SEDANG DIPERBARUI';
+        renderStatusOverlay(
+            'ditzzFeatureStatus',
+            title,
+            {
+                message: presentation.message || config.featureStatusMessage,
+                repairPlan: presentation.repairPlan,
+                backgroundVideoUrl: presentation.backgroundVideoUrl,
+                musicId: presentation.musicId
+            },
+            { adminName: presentation.adminName, endsAt: presentation.endsAt, updatedAt: presentation.updatedAt }
+        );
+        return true;
+    }
+
+    function applyMusicFeatureStatus(config) {
+        const status = (config.featureStatus || {}).music || 'available';
+        if (status === 'available' && config.websiteMusicEnabled !== false) return;
+        if (!document.body || document.getElementById('ditzzMusicStatus')) return;
+
+        const presentation = (config.featurePresentation || {}).music || {};
+        const panel = document.createElement('aside');
+        panel.id = 'ditzzMusicStatus';
+        panel.className = 'ditzz-music-status';
+        panel.setAttribute('role', 'status');
+        panel.setAttribute('aria-live', 'polite');
+        const videoUrl = safeVideoUrl(presentation.backgroundVideoUrl);
+        if (videoUrl) {
+            const video = document.createElement('video');
+            video.src = videoUrl;
+            video.autoplay = true;
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.className = 'ditzz-music-status-video';
+            panel.appendChild(video);
+        }
+
+        const heading = document.createElement('strong');
+        heading.textContent = config.websiteMusicEnabled === false
+            ? 'MUSIK DINONAKTIFKAN OLEH ADMIN'
+            : status === 'comingSoon' ? 'FITUR MUSIK SEGERA HADIR' : 'FITUR MUSIK SEDANG DIPERBARUI';
+        const message = document.createElement('span');
+        message.textContent = presentation.message || config.featureStatusMessage
+            || 'Pemutar musik sedang diperbarui.';
+        panel.append(heading, message);
+        if (presentation.repairPlan) {
+            const plan = document.createElement('span');
+            plan.textContent = `Perbaikan: ${presentation.repairPlan}`;
+            panel.appendChild(plan);
+        }
+        if (presentation.adminName) {
+            const administrator = document.createElement('span');
+            administrator.textContent = `Diperbarui oleh ${presentation.adminName}`;
+            panel.appendChild(administrator);
+        }
+
+        if (presentation.endsAt) {
+            const countdown = document.createElement('span');
+            countdown.className = 'ditzz-music-status-countdown';
+            const updateCountdown = () => {
+                const remainingMs = Date.parse(presentation.endsAt) - Date.now();
+                if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+                    countdown.textContent = 'Perkiraan selesai tercapai; status menunggu Admin.';
+                    window.clearInterval(countdownTimer);
+                    return;
+                }
+                countdown.textContent = `Perkiraan kembali: ${Math.ceil(remainingMs / 1000)} detik`;
+            };
+            const countdownTimer = window.setInterval(updateCountdown, 1000);
+            updateCountdown();
+            panel.appendChild(countdown);
+        }
+
+        if (/^[\w-]{11}$/.test(String(presentation.musicId || ''))) {
+            const musicButton = document.createElement('button');
+            musicButton.type = 'button';
+            musicButton.textContent = 'PUTAR AUDIO STATUS';
+            musicButton.addEventListener('click', () => {
+                const player = document.createElement('iframe');
+                player.title = 'Audio informasi status musik';
+                player.allow = 'autoplay; encrypted-media; picture-in-picture';
+                player.referrerPolicy = 'strict-origin-when-cross-origin';
+                player.src = `https://www.youtube.com/embed/${presentation.musicId}?autoplay=1&playsinline=1&origin=${encodeURIComponent(location.origin)}`;
+                panel.insertBefore(player, musicButton);
+                musicButton.remove();
+            }, { once: true });
+            panel.appendChild(musicButton);
+        }
+
+        document.body.appendChild(panel);
+    }
+
+    function renderAnnouncement(announcement) {
+        const previous = document.getElementById('ditzzLiveAnnouncement');
+        if (previous) previous.remove();
+        if (!announcement || Date.parse(announcement.expires_at) <= Date.now()
+            || window.location.pathname.startsWith('/admin/')
+            || document.getElementById('ditzzGlobalSiteStatus')) return;
+
+        const panel = document.createElement('section');
+        panel.id = 'ditzzLiveAnnouncement';
+        panel.className = 'ditzz-announcement';
+        panel.setAttribute('aria-labelledby', 'ditzzAnnouncementTitle');
+        const title = document.createElement('h2');
+        title.id = 'ditzzAnnouncementTitle';
+        title.textContent = 'PESAN LANGSUNG DARI ADMIN';
+        const message = document.createElement('p');
+        message.className = 'ditzz-announcement-message';
+        message.textContent = announcement.message;
+        const author = document.createElement('p');
+        author.className = 'ditzz-announcement-meta';
+        author.textContent = `Dari ${announcement.created_by_name || 'Admin'}`;
+        const countdown = document.createElement('p');
+        countdown.className = 'ditzz-announcement-meta';
+        const responseForm = document.createElement('form');
+        const responseInput = document.createElement('textarea');
+        responseInput.maxLength = 500;
+        responseInput.required = true;
+        responseInput.placeholder = 'Tulis balasan singkat (maks. 500 karakter)';
+        const submit = document.createElement('button');
+        submit.type = 'submit';
+        submit.textContent = 'KIRIM BALASAN';
+        const feedback = document.createElement('p');
+        feedback.className = 'ditzz-announcement-feedback';
+        responseForm.append(responseInput, submit, feedback);
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'ditzz-announcement-close';
+        close.setAttribute('aria-label', 'Tutup pengumuman');
+        close.textContent = '×';
+        close.addEventListener('click', () => panel.remove());
+        panel.append(close, title, message, author, countdown, responseForm);
+        document.body.appendChild(panel);
+
+        const updateCountdown = () => {
+            const remainingMs = Date.parse(announcement.expires_at) - Date.now();
+            if (remainingMs <= 0) {
+                panel.remove();
+                window.clearInterval(countdownTimer);
+                return;
+            }
+            countdown.textContent = `INFO HILANG DALAM ${Math.ceil(remainingMs / 1000)} DETIK`;
+        };
+        const countdownTimer = window.setInterval(updateCountdown, 1000);
+        updateCountdown();
+        responseForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            submit.disabled = true;
+            feedback.textContent = 'Mengirim balasan...';
+            try {
+                const client = await requireClient();
+                const { error } = await client.from('announcement_responses').insert({
+                    announcement_id: announcement.id,
+                    visitor_name: (localStorage.getItem('ditzz_visitor_name') || 'Pengunjung').slice(0, 40),
+                    response: responseInput.value.trim()
+                });
+                if (error) throw error;
+                feedback.textContent = 'Balasan terkirim ke CPanel.';
+                responseInput.value = '';
+                if (window.DitzzData) {
+                    window.DitzzData.recordVisitorEvent('announcement_response').catch(error => {
+                        console.error('Announcement response activity could not be recorded.', error);
+                    });
+                }
+            } catch (error) {
+                feedback.textContent = error.message || 'Balasan belum dapat dikirim.';
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    }
+
+    async function loadActiveAnnouncement() {
+        if (!state.client || window.location.pathname.startsWith('/admin/')) return;
+        const { data, error } = await state.client
+            .from('site_announcements')
+            .select('id,message,created_by_name,created_at,expires_at')
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (error) throw error;
+        renderAnnouncement(data);
+    }
+
     function showUnavailablePage() {
         if (!document.body) {
             document.addEventListener('DOMContentLoaded', showUnavailablePage, { once: true });
@@ -129,6 +464,9 @@
                 .channel('ditzz-public-site-state')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'site_state' }, payload => {
                     cacheRemoteState(payload.new, true);
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'site_announcements' }, () => {
+                    document.dispatchEvent(new CustomEvent('ditzz:announcements-changed'));
                 })
                 .subscribe(channelStatus => {
                     if (channelStatus === 'CHANNEL_ERROR' || channelStatus === 'TIMED_OUT') {
@@ -199,6 +537,12 @@
             .on('postgres_changes', { event: '*', schema: 'public', table: 'admin_profiles' }, () => {
                 document.dispatchEvent(new CustomEvent('ditzz:admin-users-changed'));
             })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'site_announcements' }, () => {
+                document.dispatchEvent(new CustomEvent('ditzz:announcements-changed'));
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'announcement_responses' }, () => {
+                document.dispatchEvent(new CustomEvent('ditzz:announcement-responses-changed'));
+            })
             .subscribe(channelStatus => {
                 if (channelStatus === 'CHANNEL_ERROR' || channelStatus === 'TIMED_OUT') {
                     setStatus('realtime-error', new Error(`Supabase Realtime status: ${channelStatus}`));
@@ -215,6 +559,92 @@
         ready,
         refresh,
         subscribeAdminUpdates,
+        applyFeatureAvailability,
+        async recordVisitorEvent(eventType, visitorName, violationReason, fullscreenSnapshot) {
+            await ready;
+            if (!state.client) return false;
+            const fullscreenSupported = fullscreenSnapshot
+                ? fullscreenSnapshot.supported
+                : Boolean(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+            const fullscreenActive = fullscreenSnapshot
+                ? fullscreenSnapshot.active
+                : Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+            const response = await fetch('/api/visitor-events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eventType,
+                    page: currentPageKey(),
+                    sessionId: visitorSessionId(),
+                    visitorName: visitorName === undefined
+                        ? localStorage.getItem('ditzz_visitor_name')
+                        : visitorName,
+                    violationReason,
+                    fullscreenSupported,
+                    fullscreenActive
+                })
+            });
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (error) {
+                throw new Error(`Visitor event API returned invalid JSON (${response.status}).`);
+            }
+            if (!response.ok) throw new Error(result.error || `Visitor event could not be stored (${response.status}).`);
+            return true;
+        },
+        async loadVisitorEvents() {
+            const result = await adminRequest('/api/admin/visitor-events');
+            return result.events;
+        },
+        async publishAnnouncement(message, durationMinutes, admin) {
+            const client = await requireClient();
+            const { data: session, error: sessionError } = await client.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!session.session) throw new Error('Masuk ke CPanel untuk menerbitkan pengumuman.');
+            const duration = Number(durationMinutes);
+            if (!Number.isInteger(duration) || duration < 1 || duration > 1440) {
+                throw new Error('Durasi pengumuman harus 1-1440 menit.');
+            }
+            const cleanMessage = String(message || '').trim();
+            const adminName = String(admin && admin.displayName || admin && admin.username || '').trim();
+            if (!cleanMessage || cleanMessage.length > 2000) throw new Error('Pesan wajib diisi (maks. 2000 karakter).');
+            if (!adminName || adminName.length > 50) throw new Error('Nama Admin tidak valid.');
+            const { data, error } = await client.from('site_announcements').insert({
+                message: cleanMessage,
+                created_by: session.session.user.id,
+                created_by_name: adminName,
+                expires_at: new Date(Date.now() + duration * 60 * 1000).toISOString()
+            }).select('id,message,created_by_name,created_at,expires_at').single();
+            if (error) throw error;
+            return data;
+        },
+        async listAnnouncements() {
+            const client = await requireClient();
+            const { data, error } = await client.from('site_announcements')
+                .select('id,message,created_by_name,created_at,expires_at')
+                .order('created_at', { ascending: false })
+                .limit(30);
+            if (error) throw error;
+            return data;
+        },
+        async deleteAnnouncement(id) {
+            const client = await requireClient();
+            const { error } = await client.from('site_announcements').delete().eq('id', id);
+            if (error) throw error;
+        },
+        async loadAnnouncementResponses() {
+            const client = await requireClient();
+            const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+            const { error: deleteError } = await client.from('announcement_responses').delete().lt('created_at', cutoff);
+            if (deleteError) throw deleteError;
+            const { data, error } = await client.from('announcement_responses')
+                .select('id,announcement_id,visitor_name,response,created_at')
+                .order('created_at', { ascending: false })
+                .limit(200);
+            if (error) throw error;
+            return data;
+        },
         async signIn(username, password) {
             const client = await requireClient();
             const normalizedUsername = String(username || '').trim().toLowerCase();
@@ -505,6 +935,49 @@
             return adminRequest(`/api/admin/users?id=${encodeURIComponent(id)}`, 'DELETE');
         }
     };
+    let lastFullscreenStatus = '';
+    const recordFullscreenStatus = () => {
+        const supported = Boolean(document.documentElement.requestFullscreen
+            || document.documentElement.webkitRequestFullscreen);
+        const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+        const currentStatus = `${supported}:${active}`;
+        if (currentStatus === lastFullscreenStatus) return;
+        lastFullscreenStatus = currentStatus;
+        window.DitzzData.recordVisitorEvent('fullscreen_status', undefined, undefined, { supported, active }).catch(error => {
+            console.error('Fullscreen activity could not be recorded.', error);
+        });
+    };
+    document.addEventListener('fullscreenchange', recordFullscreenStatus);
+    document.addEventListener('webkitfullscreenchange', recordFullscreenStatus);
+
+    ready.then(() => {
+        if (!state.client || window.location.pathname.startsWith('/admin/')) return;
+        let config = {};
+        try {
+            config = JSON.parse(localStorage.getItem('ditzz_config') || '{}');
+        } catch (error) {
+            console.error('Site status configuration could not be read.', error);
+        }
+        const applyPublicStatus = () => {
+            applyGlobalSiteStatus(config);
+            applyFeatureAvailability(config);
+        };
+        if (document.body) applyPublicStatus();
+        else document.addEventListener('DOMContentLoaded', applyPublicStatus, { once: true });
+        window.DitzzData.recordVisitorEvent('page_view').catch(error => {
+            console.error('Visitor page view could not be recorded.', error);
+        });
+        loadActiveAnnouncement().catch(error => {
+            console.error('Active announcement could not be loaded.', error);
+        });
+        document.addEventListener('ditzz:announcements-changed', () => {
+            loadActiveAnnouncement().catch(error => {
+                console.error('Updated announcement could not be loaded.', error);
+            });
+        });
+    }).catch(error => {
+        console.error('Visitor services could not be initialized.', error);
+    });
     window.addEventListener('load', () => {
         setStatus(state.status, state.error);
     });

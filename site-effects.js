@@ -16,6 +16,10 @@
     let fullscreenLossTimer = null;
     let fullscreenGateTimer = null;
 
+    function isFullscreenActive() {
+        return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
     function parseVisitorBlock(serialized) {
         if (!serialized) return null;
         try {
@@ -52,7 +56,7 @@
         const details = document.createElement('p');
         details.textContent = `Nama visitor "${block.name}" cocok dengan entri yang diblokir${block.term ? `: "${block.term}"` : ''}.`;
         const appeal = document.createElement('p');
-        appeal.textContent = 'Blokir ini berlaku pada browser/perangkat ini sampai Admin atau Keamanan membukanya melalui CPanel.';
+        appeal.textContent = 'Blokir ini tersimpan pada daftar visitor global. Admin atau Keamanan dapat membukanya melalui CPanel; setelah dibuka, muat ulang halaman ini.';
         const privacy = document.createElement('p');
         privacy.textContent = 'Ini hanya pembatasan akses situs; perangkat tidak dilacak, diubah, atau diretas.';
         privacy.style.cssText = 'margin-bottom:0;color:#9da7b3;font-size:.8rem';
@@ -72,6 +76,24 @@
             return false;
         }
         showVisitorBlock(block);
+        if (window.DitzzData && window.DitzzData.ready) {
+            window.DitzzData.ready.then(async () => {
+                if (!window.DitzzData.configured) return;
+                try {
+                    if (await window.DitzzData.checkVisitorBlocked(block.name)) return;
+                    const currentBlock = parseVisitorBlock(localStorage.getItem(visitorBlockKey));
+                    if (!currentBlock || currentBlock.name !== block.name) return;
+                    localStorage.removeItem(visitorBlockKey);
+                    const overlay = document.getElementById('visitorPermanentBlock');
+                    if (overlay) overlay.remove();
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Visitor block status could not be verified.', error);
+                    const details = document.querySelector('#visitorPermanentBlock p');
+                    if (details) details.textContent = 'Status blokir belum dapat diverifikasi. Periksa koneksi lalu muat ulang halaman.';
+                }
+            });
+        }
         return true;
     }
 
@@ -87,7 +109,7 @@
     }
 
     function handleFullscreenLoss() {
-        if (document.fullscreenElement) {
+        if (isFullscreenActive()) {
             if (fullscreenLossTimer) window.clearTimeout(fullscreenLossTimer);
             fullscreenLossTimer = null;
             return;
@@ -97,7 +119,7 @@
         if (window.DitzzSounds) window.DitzzSounds.play('warning', 2000);
         fullscreenLossTimer = window.setTimeout(() => {
             fullscreenLossTimer = null;
-            if (document.fullscreenElement) {
+            if (isFullscreenActive()) {
                 sessionStorage.setItem(activeKey, 'true');
                 return;
             }
@@ -162,7 +184,7 @@
     }
 
     function showFullscreenGate() {
-        if (document.fullscreenElement) return;
+        if (isFullscreenActive()) return;
         if (document.getElementById('fullscreenGuard')) return;
         if (window.DitzzSounds) window.DitzzSounds.play('warning', 1800);
 
@@ -180,7 +202,7 @@
         title.textContent = 'TAMPILAN LAYAR PENUH DIPERLUKAN';
         title.style.cssText = 'margin-bottom:12px;color:#00ffff;font:700 1rem Orbitron,sans-serif';
         const message = document.createElement('p');
-        message.textContent = 'Lanjutkan setelah mode layar penuh aktif. Jika browser tidak mendukung fullscreen, Anda dapat kembali ke halaman awal.';
+        message.textContent = 'Layar penuh membuat animasi, efek, dan detail website terlihat lebih leluasa dan imersif. Aktifkan fullscreen untuk melanjutkan; jika browser tidak mendukungnya, kembali ke halaman awal dan gunakan browser lain.';
         const button = document.createElement('button');
         button.type = 'button';
         button.textContent = 'LANJUTKAN DALAM LAYAR PENUH';
@@ -191,19 +213,20 @@
         backLink.style.cssText = 'display:block;margin-top:14px;color:#9da7b3;font-size:.75rem';
 
         button.addEventListener('click', async () => {
-            if (!document.documentElement.requestFullscreen) {
+            const requestFullscreen = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+            if (!requestFullscreen) {
                 message.textContent = 'Browser ini tidak mendukung fullscreen. Silakan buka halaman awal pada browser yang mendukungnya.';
                 if (window.DitzzSounds) window.DitzzSounds.play('error', 2200);
                 return;
             }
             try {
-                await document.documentElement.requestFullscreen();
+                await requestFullscreen.call(document.documentElement);
             } catch (error) {
                 message.textContent = 'Fullscreen belum diizinkan browser. Tekan tombol ini lagi dan izinkan permintaannya.';
                 if (window.DitzzSounds) window.DitzzSounds.play('error', 2200);
                 return;
             }
-            if (document.fullscreenElement) {
+            if (isFullscreenActive()) {
                 sessionStorage.setItem(activeKey, 'true');
                 sessionStorage.removeItem(navigationKey);
                 overlay.remove();
@@ -219,11 +242,11 @@
     }
 
     function scheduleFullscreenGate() {
-        if (fullscreenGateTimer || document.fullscreenElement) return;
+        if (fullscreenGateTimer || isFullscreenActive()) return;
         fullscreenGateTimer = window.setTimeout(() => {
             fullscreenGateTimer = null;
             sessionStorage.removeItem(navigationKey);
-            if (!document.fullscreenElement) showFullscreenGate();
+            if (!isFullscreenActive()) showFullscreenGate();
         }, 500);
     }
 
@@ -238,8 +261,8 @@
         }
     }, true);
 
-    document.addEventListener('fullscreenchange', () => {
-        if (document.fullscreenElement) {
+    function handleFullscreenChange() {
+        if (isFullscreenActive()) {
             sessionStorage.setItem(activeKey, 'true');
             sessionStorage.removeItem(navigationKey);
             const fullscreenGuard = document.getElementById('fullscreenGuard');
@@ -251,7 +274,10 @@
             return;
         }
         handleFullscreenLoss();
-    });
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     window.addEventListener('resize', handleFullscreenLoss);
 
     if (isEntryPage) {
@@ -260,12 +286,12 @@
     }
 
     const isInternalNavigation = sessionStorage.getItem(navigationKey) === 'true';
-    if (!isInternalNavigation || document.fullscreenElement) sessionStorage.removeItem(navigationKey);
+    if (!isInternalNavigation || isFullscreenActive()) sessionStorage.removeItem(navigationKey);
     if (sessionStorage.getItem(activeKey) !== 'true') {
         returnToEntry();
-    } else if (!document.fullscreenElement && isInternalNavigation) {
+    } else if (!isFullscreenActive() && isInternalNavigation) {
         scheduleFullscreenGate();
-    } else if (!document.fullscreenElement) {
+    } else if (!isFullscreenActive()) {
         returnToEntry();
     }
 })();

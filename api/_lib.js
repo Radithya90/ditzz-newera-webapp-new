@@ -1,4 +1,36 @@
 const usernamePattern = /^[a-zA-Z0-9._-]{3,32}$/;
+const { isIP } = require('node:net');
+
+function maskClientIp(value) {
+    const rawValue = Array.isArray(value) ? value[0] : value;
+    const candidate = String(rawValue || '').split(',')[0].trim().replace(/^\[([^\]]+)\](?::\d+)?$/, '$1');
+    const version = isIP(candidate);
+    if (version === 4) {
+        const octets = candidate.split('.');
+        octets[3] = '0';
+        return `${octets.join('.')}/24`;
+    }
+    if (version !== 6) return null;
+
+    let address = candidate.toLowerCase();
+    if (address.includes('.')) {
+        const separator = address.lastIndexOf(':');
+        const ipv4 = address.slice(separator + 1);
+        if (isIP(ipv4) !== 4) return null;
+        const octets = ipv4.split('.').map(Number);
+        address = `${address.slice(0, separator)}:${((octets[0] << 8) | octets[1]).toString(16)}:${((octets[2] << 8) | octets[3]).toString(16)}`;
+    }
+
+    const parts = address.split('::');
+    if (parts.length > 2) return null;
+    const left = parts[0] ? parts[0].split(':') : [];
+    const right = parts.length === 2 && parts[1] ? parts[1].split(':') : [];
+    const missing = 8 - left.length - right.length;
+    if ((parts.length === 1 && missing !== 0) || (parts.length === 2 && missing < 1)) return null;
+    const groups = [...left, ...Array(missing).fill('0'), ...right];
+    if (groups.some(group => !/^[0-9a-f]{1,4}$/.test(group))) return null;
+    return `${groups.slice(0, 3).map(group => parseInt(group, 16).toString(16)).join(':')}::/48`;
+}
 
 function getSupabaseConfig() {
     const url = process.env.SUPABASE_URL;
@@ -188,6 +220,7 @@ module.exports = {
     authEmail,
     getAdminProfiles,
     getSupabaseConfig,
+    maskClientIp,
     normalizeProfile,
     readBody,
     requireAdmin,

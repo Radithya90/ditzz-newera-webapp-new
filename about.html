@@ -558,41 +558,14 @@
 
         /* ===== SYNC WITH CPANEL CONFIG ===== */
         function applyFeatureAvailability(config) {
-            const feature = document.body.dataset.feature;
-            const status = (config.featureStatus || {})[feature] || 'available';
             const musicStatus = (config.featureStatus || {}).music || 'available';
-            window.ditzzMusicUnavailable = musicStatus !== 'available' || config.websiteMusicEnabled === false;
-            const message = config.featureStatusMessage || 'Kami sedang menyiapkan pembaruan agar pengalaman Anda lebih nyaman.';
-            const makePanel = (title, text) => {
-                const panel = document.createElement('div');
-                panel.style.cssText = 'max-width:560px;padding:28px;border:1px solid #00ff41;background:#0d1117;color:#e0e0e0;text-align:center;box-shadow:0 0 35px rgba(0,255,65,.25);font-family:Share Tech Mono,monospace;line-height:1.7';
-                const heading = document.createElement('h2');
-                heading.style.cssText = 'font:700 1.2rem Orbitron,sans-serif;color:#00ff41;margin-bottom:12px';
-                heading.textContent = title;
-                const description = document.createElement('p');
-                description.textContent = text;
-                panel.append(heading, description);
-                return panel;
-            };
-            const statusText = status === 'comingSoon' ? 'FITUR SEGERA HADIR' : 'FITUR SEDANG DIPERBARUI';
-            if (status !== 'available') {
-                const overlay = document.createElement('div');
-                overlay.setAttribute('role', 'status');
-                overlay.style.cssText = 'position:fixed;inset:0;z-index:200000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,8,10,.94);backdrop-filter:blur(12px)';
-                overlay.appendChild(makePanel(statusText, message));
-                document.body.appendChild(overlay);
-            }
-            if (musicStatus !== 'available') {
+            const musicUnavailable = musicStatus !== 'available' || config.websiteMusicEnabled === false;
+            window.ditzzMusicUnavailable = musicUnavailable;
+            if (musicUnavailable) {
                 const musicPlayer = document.getElementById('cyberAudioPlayer');
                 const monitor = document.getElementById('ytMonitor');
                 if (musicPlayer) musicPlayer.style.display = 'none';
                 if (monitor) monitor.style.display = 'none';
-                const banner = document.createElement('div');
-                banner.id = 'musicAvailabilityBanner';
-                banner.setAttribute('role', 'status');
-                banner.style.cssText = 'position:fixed;top:82px;left:50%;transform:translateX(-50%);z-index:100020;max-width:calc(100vw - 24px);padding:10px 14px;border:1px solid #00ffff;background:#0d1117;color:#00ffff;text-align:center;font: .75rem Share Tech Mono,monospace';
-                banner.textContent = `${musicStatus === 'comingSoon' ? 'FITUR MUSIK SEGERA HADIR' : 'FITUR MUSIK SEDANG DIPERBARUI'} — ${message}`;
-                document.body.appendChild(banner);
             }
         }
 
