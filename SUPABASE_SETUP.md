@@ -1,6 +1,6 @@
-# Supabase and Cloudflare Pages setup
+# Supabase and Vercel setup
 
-The site remains static and is published with Cloudflare Pages. Cloudflare Pages Functions provide the API endpoints, while shared settings and CPanel data stay in Supabase. Visitor pages load the shared configuration and product catalog, then reload when Supabase Realtime reports a change.
+The site remains static, but its shared settings and CPanel data are stored in Supabase. Visitor pages load the shared configuration and product catalog, then reload when Supabase Realtime reports a change.
 
 ## 1. Create the Supabase project
 
@@ -26,26 +26,21 @@ The site remains static and is published with Cloudflare Pages. Cloudflare Pages
 
 The username is used to derive the internal Auth email. Passwords and Admin roles are not stored in browser localStorage.
 
-## 2. Deploy to Cloudflare Pages
+## 2. Configure Vercel
 
-1. In Cloudflare, create a **Pages** project named `DITZZ-NEWERA-WEBAPP` (Cloudflare hostname slug: `ditzz-newera-webapp`) and connect the GitHub repository `Radithya90/UPDATE-NEW-WEBSITE-DELABELS-NEW-WEB` on the `main` branch.
-2. Set the build command to `npm run build` and the build output directory to `dist`. The project has no framework preset.
-3. In **Settings > Variables and Secrets**, add the following for Production and Preview as needed:
+In **Vercel > Project > Settings > Environment Variables**, set these for each environment you deploy:
 
 | Variable | Value | Used by |
 | --- | --- | --- |
-| `SUPABASE_URL` | Project URL from Supabase API settings | Browser bootstrap and Pages Functions |
+| `SUPABASE_URL` | Project URL from Supabase API settings | Browser bootstrap and Vercel Functions |
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable key from Supabase API Keys | Public, RLS-protected browser client |
-| `SUPABASE_SECRET_KEY` | Secret key from Supabase API Keys; store as a Secret | Server-side Admin Auth management only |
+| `SUPABASE_SECRET_KEY` | Secret key from Supabase API Keys | Server-side Admin Auth management only |
 
-Never put `SUPABASE_SECRET_KEY` in HTML, JavaScript served to visitors, or a public repository. It bypasses Row Level Security and belongs only in Cloudflare's encrypted Function secrets. The server still validates the visitor's Supabase session and Admin/Keamanan role before privileged operations.
+Never put `SUPABASE_SECRET_KEY` in HTML, JavaScript served to visitors, or a public repository. It bypasses Row Level Security and belongs only in Vercel server environment variables. The server still validates the visitor's Supabase session and Admin/Keamanan role before privileged operations.
 
-The API also accepts the legacy `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` variable names for migration compatibility. Prefer the new publishable/secret keys; when using `SUPABASE_SECRET_KEY`, the Function sends it only in the `apikey` header, not as a Bearer JWT.
+The API also accepts the legacy `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` variable names for migration compatibility. Prefer the new publishable/secret keys; when using `SUPABASE_SECRET_KEY`, the server sends it only in the `apikey` header, not as a Bearer JWT.
 
-4. Deploy the project. The `/api/config` endpoint returns only the URL and public publishable key; `/api/admin/users` manages accounts after validating the signed-in Admin/Keamanan role.
-5. Test the `pages.dev` URL in a private browser window, including `/api/config` and `/admin/login.html`. Keep the existing Vercel deployment until the Cloudflare deployment and CPanel have both been verified.
-
-The build copies only the website HTML, CSS, JavaScript, and Admin HTML into `dist`. API source, SQL schema, setup documentation, and local browser snapshots are not published as static assets. Cloudflare Pages Functions in `functions/` handle the API routes.
+Redeploy the Vercel project after adding the variables. The `/api/config` endpoint returns only the URL and public anon key.
 
 ## 3. First login and import
 
