@@ -14,11 +14,16 @@ module.exports = async function handler(req, res) {
         const { user, profile } = await requireAdmin(req);
 
         if (req.method === 'GET') {
-            const profiles = await getAdminProfiles();
+            const profiles = profile.role === 'admin' ? await getAdminProfiles() : [profile];
             return res.status(200).json({ users: profiles.map(normalizeProfile) });
         }
 
         if (req.method === 'POST') {
+            if (profile.role !== 'admin') {
+                const error = new Error('Only Admin can create CPanel accounts.');
+                error.statusCode = 403;
+                throw error;
+            }
             const body = readBody(req);
             validateProfileInput(body, true);
             const existing = await getAdminProfiles();
@@ -49,6 +54,7 @@ module.exports = async function handler(req, res) {
                         username: body.username,
                         display_name: body.displayName.trim(),
                         role: body.role,
+                        editable_pages: body.role === 'admin' ? [] : body.editablePages || [],
                         avatar_url: body.avatarUrl || null
                     })
                 });
@@ -64,6 +70,14 @@ module.exports = async function handler(req, res) {
             if (typeof body.id !== 'string' || !body.id) {
                 const error = new Error('User ID is required.');
                 error.statusCode = 400;
+                throw error;
+            }
+            if (profile.role !== 'admin'
+                && (body.id !== user.id
+                    || (body.role !== undefined && body.role !== profile.role)
+                    || body.editablePages !== undefined)) {
+                const error = new Error('Non-Admin CPanel accounts may only update their own profile, not account access.');
+                error.statusCode = 403;
                 throw error;
             }
             validateProfileInput(body, false);
@@ -97,7 +111,10 @@ module.exports = async function handler(req, res) {
             const profilePatch = {
                 username: nextUsername,
                 display_name: body.displayName === undefined ? target.display_name : body.displayName.trim(),
-                role: nextRole
+                role: nextRole,
+                editable_pages: nextRole !== 'admin'
+                    ? (body.editablePages === undefined ? target.editable_pages || [] : body.editablePages)
+                    : []
             };
             if (body.avatarUrl !== undefined) profilePatch.avatar_url = body.avatarUrl || null;
             const updatedRows = await supabaseServiceRequest(
@@ -132,7 +149,8 @@ module.exports = async function handler(req, res) {
                                 username: target.username,
                                 display_name: target.display_name,
                                 role: target.role,
-                                avatar_url: target.avatar_url
+                                avatar_url: target.avatar_url,
+                                editable_pages: target.editable_pages || []
                             })
                         }
                     );
@@ -143,6 +161,11 @@ module.exports = async function handler(req, res) {
         }
 
         if (req.method === 'DELETE') {
+            if (profile.role !== 'admin') {
+                const error = new Error('Only Admin can delete CPanel accounts.');
+                error.statusCode = 403;
+                throw error;
+            }
             const id = typeof req.query.id === 'string' ? req.query.id : '';
             if (!id) {
                 const error = new Error('User ID is required.');

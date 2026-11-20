@@ -4,11 +4,28 @@ create table if not exists public.admin_profiles (
     user_id uuid primary key references auth.users (id) on delete cascade,
     username text not null,
     display_name text not null,
-    role text not null check (role in ('admin', 'security')),
+    role text not null check (role in ('admin', 'security', 'reseller', 'partner')),
     avatar_url text,
+    editable_pages text[] not null default array[]::text[],
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table public.admin_profiles
+    add column if not exists editable_pages text[] not null default array[]::text[];
+alter table public.admin_profiles
+    drop constraint if exists admin_profiles_role_check;
+alter table public.admin_profiles
+    add constraint admin_profiles_role_check
+    check (role in ('admin', 'security', 'reseller', 'partner'));
+alter table public.admin_profiles
+    drop constraint if exists admin_profiles_editable_pages_check;
+alter table public.admin_profiles
+    add constraint admin_profiles_editable_pages_check
+    check (editable_pages <@ array[
+        'site-status', 'music', 'content', 'products', 'orders', 'messages',
+        'announcements', 'visitor-activity', 'settings', 'blocked-visitors'
+    ]::text[]);
 
 create unique index if not exists admin_profiles_username_lower_key
     on public.admin_profiles (lower(username));
@@ -79,6 +96,10 @@ create table if not exists public.visitor_activity (
     fullscreen_active boolean not null default false,
     rule_violation boolean not null default false,
     violation_reason text check (violation_reason is null or violation_reason in ('blocked_name', 'invalid_format', 'inappropriate_name')),
+    music_track_id text,
+    music_track_name text check (music_track_name is null or length(music_track_name) between 1 and 120),
+    music_source text check (music_source is null or music_source in ('admin', 'local', 'visitor')),
+    music_media_type text check (music_media_type is null or music_media_type in ('audio', 'video', 'youtube')),
     created_at timestamptz not null default now()
 );
 
@@ -87,10 +108,43 @@ alter table public.visitor_activity
 alter table public.visitor_activity
     add column if not exists fullscreen_active boolean not null default false;
 alter table public.visitor_activity
+    add column if not exists music_track_id text;
+alter table public.visitor_activity
+    add column if not exists music_track_name text;
+alter table public.visitor_activity
+    add column if not exists music_source text;
+alter table public.visitor_activity
+    add column if not exists music_media_type text;
+alter table public.visitor_activity
     drop constraint if exists visitor_activity_event_type_check;
 alter table public.visitor_activity
     add constraint visitor_activity_event_type_check
-    check (event_type in ('page_view', 'name_submitted', 'name_violation', 'feature_open', 'announcement_response', 'fullscreen_status'));
+    check (event_type in ('page_view', 'name_submitted', 'name_violation', 'feature_open', 'announcement_response', 'fullscreen_status', 'music_selection'));
+alter table public.visitor_activity
+    drop constraint if exists visitor_activity_music_source_check;
+alter table public.visitor_activity
+    add constraint visitor_activity_music_source_check
+    check (music_source is null or music_source in ('admin', 'local', 'visitor'));
+alter table public.visitor_activity
+    drop constraint if exists visitor_activity_music_media_type_check;
+alter table public.visitor_activity
+    add constraint visitor_activity_music_media_type_check
+    check (music_media_type is null or music_media_type in ('audio', 'video', 'youtube'));
+alter table public.visitor_activity
+    drop constraint if exists visitor_activity_music_selection_check;
+alter table public.visitor_activity
+    add constraint visitor_activity_music_selection_check
+    check (
+        event_type <> 'music_selection'
+        or (
+            music_track_name is not null
+            and music_source is not null
+            and music_media_type is not null
+            and (music_source <> 'admin' or music_track_id is not null)
+            and (music_source <> 'local' or music_track_id is null)
+            and (music_source <> 'visitor' or (music_track_id is not null and music_media_type = 'youtube'))
+        )
+    );
 
 create index if not exists visitor_activity_created_at_idx on public.visitor_activity (created_at desc);
 create index if not exists visitor_activity_session_id_idx on public.visitor_activity (session_id, created_at desc);
@@ -100,9 +154,23 @@ create table if not exists public.site_announcements (
     message text not null check (length(message) between 1 and 2000),
     created_by uuid references auth.users (id) on delete set null,
     created_by_name text not null check (length(created_by_name) between 1 and 50),
+    target_roles text[] not null default array['visitor', 'security', 'reseller', 'partner']::text[],
     created_at timestamptz not null default now(),
     expires_at timestamptz not null check (expires_at > created_at)
 );
+
+alter table public.site_announcements
+    add column if not exists target_roles text[] not null default array['visitor', 'security', 'reseller', 'partner']::text[];
+alter table public.site_announcements
+    drop constraint if exists site_announcements_target_roles_check;
+alter table public.site_announcements
+    add constraint site_announcements_target_roles_check
+    check (target_roles <@ array['visitor', 'security', 'reseller', 'partner']::text[]);
+alter table public.site_announcements
+    alter column target_roles set default array['visitor', 'security', 'reseller', 'partner']::text[];
+update public.site_announcements
+set target_roles = array['visitor', 'security', 'reseller', 'partner']::text[]
+where target_roles = array['security', 'reseller', 'partner']::text[];
 
 create index if not exists site_announcements_expires_at_idx on public.site_announcements (expires_at desc);
 
@@ -127,12 +195,158 @@ as $$
         select 1
         from public.admin_profiles
         where user_id = auth.uid()
-          and role in ('admin', 'security')
+          and role in ('admin', 'security', 'reseller', 'partner')
     );
 $$;
 
 revoke all on function public.is_cpanel_admin() from public;
 grant execute on function public.is_cpanel_admin() to authenticated;
+
+create or replace function public.is_cpanel_owner()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+    select exists (
+        select 1
+        from public.admin_profiles
+        where user_id = auth.uid()
+          and role = 'admin'
+    );
+$$;
+
+revoke all on function public.is_cpanel_owner() from public;
+grant execute on function public.is_cpanel_owner() to authenticated;
+
+create or replace function public.can_edit_cpanel_page(p_page text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+    select exists (
+        select 1
+        from public.admin_profiles
+        where user_id = auth.uid()
+          and (
+              role = 'admin'
+              or p_page = any(editable_pages)
+          )
+    );
+$$;
+
+revoke all on function public.can_edit_cpanel_page(text) from public;
+grant execute on function public.can_edit_cpanel_page(text) to authenticated;
+
+create or replace function public.can_edit_any_cpanel_page()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+    select exists (
+        select 1
+        from public.admin_profiles
+        where user_id = auth.uid()
+          and (
+              role = 'admin'
+              or editable_pages && array[
+                  'site-status', 'music', 'content', 'products', 'messages',
+                  'announcements', 'settings', 'blocked-visitors'
+              ]::text[]
+          )
+    );
+$$;
+
+revoke all on function public.can_edit_any_cpanel_page() from public;
+grant execute on function public.can_edit_any_cpanel_page() to authenticated;
+
+create or replace function public.guard_site_state_permissions()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+    changed_keys text[];
+    changed_key text;
+    required_page text;
+begin
+    if auth.uid() is null or exists (
+        select 1 from public.admin_profiles
+        where user_id = auth.uid() and role = 'admin'
+    ) then
+        return new;
+    end if;
+
+    if new.updated_by is distinct from auth.uid() then
+        raise exception 'CPanel users may only attribute site changes to themselves.'
+            using errcode = '42501';
+    end if;
+
+    if new.config is not null and jsonb_typeof(new.config) <> 'object' then
+        raise exception 'Site configuration must be a JSON object.'
+            using errcode = '22023';
+    end if;
+
+    if tg_op = 'INSERT' then
+        select array_agg(key) into changed_keys
+        from jsonb_object_keys(coalesce(new.config, '{}'::jsonb)) as keys(key);
+    elsif new.config is distinct from old.config then
+        select array_agg(key) into changed_keys
+        from jsonb_object_keys(coalesce(old.config, '{}'::jsonb) || coalesce(new.config, '{}'::jsonb)) as keys(key)
+        where old.config -> key is distinct from new.config -> key;
+    end if;
+
+    foreach changed_key in array coalesce(changed_keys, array[]::text[]) loop
+        required_page := case
+            when changed_key in ('siteStatus', 'featureStatus', 'featureStatusMessage', 'featurePresentation')
+                then 'site-status'
+            when changed_key in ('introMusicUrl', 'introMusicId', 'introMusicSource', 'introMediaUrl',
+                'introMediaType', 'introStartTime', 'introVolume',
+                'introTitle', 'websiteMusicEnabled', 'tracks')
+                then 'music'
+            when changed_key in ('approvedVisitors', 'blockedVisitorTerms')
+                then 'blocked-visitors'
+            when changed_key in ('siteTitle', 'siteTagline', 'contactEmail')
+                then 'settings'
+            when changed_key in ('welcomeTitle', 'welcomeMessage', 'welcomePantun',
+                'rules', 'purpose', 'devName', 'devRole',
+                'devBio', 'agreementText', 'enterBtnText')
+                then 'content'
+            when changed_key = 'pageContent'
+                then 'content'
+            else null
+        end;
+
+        if required_page is null or not public.can_edit_cpanel_page(required_page) then
+            raise exception 'Editing site configuration key "%" is not permitted.', changed_key
+                using errcode = '42501';
+        end if;
+    end loop;
+
+    if (tg_op = 'INSERT' and new.products is not null)
+        or (tg_op = 'UPDATE' and new.products is distinct from old.products) then
+        if not public.can_edit_cpanel_page('products') then
+            raise exception 'Editing the product catalog is not permitted.'
+                using errcode = '42501';
+        end if;
+    end if;
+
+    return new;
+end;
+$$;
+
+revoke all on function public.guard_site_state_permissions() from public;
+
+drop trigger if exists site_state_permissions_guard on public.site_state;
+create trigger site_state_permissions_guard
+    before insert or update on public.site_state
+    for each row execute function public.guard_site_state_permissions();
 
 create or replace function public.is_visitor_blocked(p_normalized_username text)
 returns boolean
@@ -173,7 +387,7 @@ grant select, delete on public.announcement_responses to authenticated;
 drop policy if exists "Admin profiles are visible to their owner and admins" on public.admin_profiles;
 create policy "Admin profiles are visible to their owner and admins"
     on public.admin_profiles for select to authenticated
-    using (user_id = auth.uid() or public.is_cpanel_admin());
+    using (user_id = auth.uid() or public.is_cpanel_owner());
 
 drop policy if exists "Site state is public to read" on public.site_state;
 create policy "Site state is public to read"
@@ -183,13 +397,13 @@ create policy "Site state is public to read"
 drop policy if exists "Admins can insert site state" on public.site_state;
 create policy "Admins can insert site state"
     on public.site_state for insert to authenticated
-    with check (public.is_cpanel_admin());
+    with check (public.can_edit_any_cpanel_page());
 
 drop policy if exists "Admins can update site state" on public.site_state;
 create policy "Admins can update site state"
     on public.site_state for update to authenticated
-    using (public.is_cpanel_admin())
-    with check (public.is_cpanel_admin());
+    using (public.can_edit_any_cpanel_page())
+    with check (public.can_edit_any_cpanel_page());
 
 drop policy if exists "Visitors can submit contact messages" on public.contact_messages;
 create policy "Visitors can submit contact messages"
@@ -199,29 +413,53 @@ create policy "Visitors can submit contact messages"
 drop policy if exists "Admins can read contact messages" on public.contact_messages;
 create policy "Admins can read contact messages"
     on public.contact_messages for select to authenticated
-    using (public.is_cpanel_admin());
+    using (public.can_edit_cpanel_page('messages'));
 
 drop policy if exists "Admins can delete contact messages" on public.contact_messages;
 create policy "Admins can delete contact messages"
     on public.contact_messages for delete to authenticated
-    using (public.is_cpanel_admin());
+    using (public.can_edit_cpanel_page('messages'));
 
 drop policy if exists "Admins can manage visitor blocks" on public.visitor_blocks;
-create policy "Admins can manage visitor blocks"
-    on public.visitor_blocks for all to authenticated
-    using (public.is_cpanel_admin())
-    with check (public.is_cpanel_admin());
+drop policy if exists "Admins can read visitor blocks" on public.visitor_blocks;
+create policy "Admins can read visitor blocks"
+    on public.visitor_blocks for select to authenticated
+    using (public.can_edit_cpanel_page('blocked-visitors'));
+
+drop policy if exists "Admins can insert visitor blocks" on public.visitor_blocks;
+create policy "Admins can insert visitor blocks"
+    on public.visitor_blocks for insert to authenticated
+    with check (public.can_edit_cpanel_page('blocked-visitors'));
+
+drop policy if exists "Admins can delete visitor blocks" on public.visitor_blocks;
+create policy "Admins can delete visitor blocks"
+    on public.visitor_blocks for delete to authenticated
+    using (public.can_edit_cpanel_page('blocked-visitors'));
 
 drop policy if exists "Visitors can view active announcements" on public.site_announcements;
 create policy "Visitors can view active announcements"
     on public.site_announcements for select to anon, authenticated
-    using (expires_at > now() or public.is_cpanel_admin());
+    using (
+        (expires_at > now() and target_roles @> array['visitor']::text[])
+        or public.is_cpanel_admin()
+    );
 
 drop policy if exists "Admins can manage announcements" on public.site_announcements;
-create policy "Admins can manage announcements"
-    on public.site_announcements for all to authenticated
-    using (public.is_cpanel_admin())
-    with check (public.is_cpanel_admin());
+drop policy if exists "Admins can insert announcements" on public.site_announcements;
+create policy "Admins can insert announcements"
+    on public.site_announcements for insert to authenticated
+    with check (public.can_edit_cpanel_page('announcements'));
+
+drop policy if exists "Admins can update announcements" on public.site_announcements;
+create policy "Admins can update announcements"
+    on public.site_announcements for update to authenticated
+    using (public.can_edit_cpanel_page('announcements'))
+    with check (public.can_edit_cpanel_page('announcements'));
+
+drop policy if exists "Admins can delete announcements" on public.site_announcements;
+create policy "Admins can delete announcements"
+    on public.site_announcements for delete to authenticated
+    using (public.can_edit_cpanel_page('announcements'));
 
 drop policy if exists "Visitors can respond to active announcements" on public.announcement_responses;
 create policy "Visitors can respond to active announcements"
@@ -238,12 +476,12 @@ create policy "Visitors can respond to active announcements"
 drop policy if exists "Admins can read announcement responses" on public.announcement_responses;
 create policy "Admins can read announcement responses"
     on public.announcement_responses for select to authenticated
-    using (public.is_cpanel_admin());
+    using (public.can_edit_cpanel_page('announcements'));
 
 drop policy if exists "Admins can delete announcement responses" on public.announcement_responses;
 create policy "Admins can delete announcement responses"
     on public.announcement_responses for delete to authenticated
-    using (public.is_cpanel_admin());
+    using (public.can_edit_cpanel_page('announcements'));
 
 revoke all on public.visitor_activity from anon, authenticated;
 
@@ -251,6 +489,74 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values ('admin-avatars', 'admin-avatars', true, null, array['image/png', 'image/gif', 'image/webp', 'image/jpeg'])
 on conflict (id) do update
 set public = true, file_size_limit = null, allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+    'site-media',
+    'site-media',
+    true,
+    null,
+    array[
+        'image/gif', 'image/apng', 'image/webp', 'image/png', 'image/jpeg',
+        'video/mp4', 'video/webm', 'video/ogg',
+        'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/aac'
+    ]
+)
+on conflict (id) do update
+set public = true, file_size_limit = null, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Site media are publicly readable" on storage.objects;
+create policy "Site media are publicly readable"
+    on storage.objects for select to public
+    using (bucket_id = 'site-media');
+
+drop policy if exists "CPanel can upload site media" on storage.objects;
+create policy "CPanel can upload site media"
+    on storage.objects for insert to authenticated
+    with check (
+        bucket_id = 'site-media'
+        and (storage.foldername(name))[1] = auth.uid()::text
+        and (
+            public.can_edit_cpanel_page('site-status')
+            or public.can_edit_cpanel_page('music')
+            or public.can_edit_cpanel_page('content')
+        )
+    );
+
+drop policy if exists "CPanel can update site media" on storage.objects;
+create policy "CPanel can update site media"
+    on storage.objects for update to authenticated
+    using (
+        bucket_id = 'site-media'
+        and (storage.foldername(name))[1] = auth.uid()::text
+        and (
+            public.can_edit_cpanel_page('site-status')
+            or public.can_edit_cpanel_page('music')
+            or public.can_edit_cpanel_page('content')
+        )
+    )
+    with check (
+        bucket_id = 'site-media'
+        and (storage.foldername(name))[1] = auth.uid()::text
+        and (
+            public.can_edit_cpanel_page('site-status')
+            or public.can_edit_cpanel_page('music')
+            or public.can_edit_cpanel_page('content')
+        )
+    );
+
+drop policy if exists "CPanel can delete site media" on storage.objects;
+create policy "CPanel can delete site media"
+    on storage.objects for delete to authenticated
+    using (
+        bucket_id = 'site-media'
+        and (storage.foldername(name))[1] = auth.uid()::text
+        and (
+            public.can_edit_cpanel_page('site-status')
+            or public.can_edit_cpanel_page('music')
+            or public.can_edit_cpanel_page('content')
+        )
+    );
 
 drop policy if exists "Admin avatars are publicly readable" on storage.objects;
 create policy "Admin avatars are publicly readable"

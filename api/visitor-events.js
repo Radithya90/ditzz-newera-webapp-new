@@ -1,12 +1,15 @@
 const { maskClientIp, readBody, sendError, supabaseServiceRequest } = require('./_lib');
 
-const eventTypes = new Set(['page_view', 'name_submitted', 'name_violation', 'feature_open', 'announcement_response', 'fullscreen_status']);
+const eventTypes = new Set(['page_view', 'name_submitted', 'name_violation', 'feature_open', 'announcement_response', 'fullscreen_status', 'music_selection']);
 const pages = new Set([
     'index', 'home', 'about', 'store', 'contact', 'updates', 'events',
     'gallery', 'faq', 'community', 'guide'
 ]);
 const violationReasons = new Set(['blocked_name', 'invalid_format', 'inappropriate_name']);
+const musicSources = new Set(['admin', 'local', 'visitor']);
+const musicMediaTypes = new Set(['audio', 'video', 'youtube']);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const musicTrackIdPattern = /^[a-zA-Z0-9._:-]{1,120}$/;
 
 function validationError(message) {
     const error = new Error(message);
@@ -51,6 +54,20 @@ async function matchesConfiguredBlockedName(name) {
     });
 }
 
+async function isConfiguredMusicTrack(trackId) {
+    const rows = await supabaseServiceRequest(
+        '/rest/v1/site_state?select=config&id=eq.main&limit=1',
+        { method: 'GET' }
+    );
+    const config = rows && rows[0] && rows[0].config || {};
+    if (trackId === 'intro') {
+        return Boolean(config.introMusicUrl || config.introMusicId);
+    }
+    return Array.isArray(config.tracks)
+        && config.tracks.some(track => track
+            && String(track.trackId || track.id || '') === trackId);
+}
+
 module.exports = async function handler(req, res) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
@@ -74,6 +91,38 @@ module.exports = async function handler(req, res) {
         }
         if (body.eventType === 'name_violation' && !violationReasons.has(body.violationReason)) {
             throw validationError('Violation type is not supported.');
+        }
+        let musicTrack = null;
+        if (body.eventType === 'music_selection') {
+            const selection = body.musicTrack;
+            if (!selection || typeof selection !== 'object'
+                || !musicSources.has(selection.source)
+                || !musicMediaTypes.has(selection.mediaType)
+                || typeof selection.name !== 'string'
+                || !selection.name.trim()
+                || selection.name.trim().length > 120) {
+                throw validationError('Music selection details are invalid.');
+            }
+            const trackId = typeof selection.trackId === 'string' ? selection.trackId : null;
+            if (selection.source === 'admin') {
+                if (!trackId || !musicTrackIdPattern.test(trackId) || !await isConfiguredMusicTrack(trackId)) {
+                    throw validationError('Selected Admin music is not in the active playlist.');
+                }
+            } else if (selection.source === 'local') {
+                if (trackId !== null || !['audio', 'video'].includes(selection.mediaType)) {
+                    throw validationError('Local music selection is invalid.');
+                }
+            } else if (!trackId || !/^[\w-]{11}$/.test(trackId) || selection.mediaType !== 'youtube') {
+                throw validationError('Visitor YouTube selection is invalid.');
+            }
+            musicTrack = {
+                music_track_id: trackId,
+                music_track_name: selection.name.trim(),
+                music_source: selection.source,
+                music_media_type: selection.mediaType
+            };
+        } else if (body.musicTrack !== undefined) {
+            throw validationError('Music selection details are not allowed for this event.');
         }
 
         const visitorName = typeof body.visitorName === 'string' ? body.visitorName.trim() : null;
@@ -107,7 +156,8 @@ module.exports = async function handler(req, res) {
                 fullscreen_supported: body.fullscreenSupported === true,
                 fullscreen_active: body.fullscreenActive === true,
                 rule_violation: body.eventType === 'name_violation',
-                violation_reason: body.eventType === 'name_violation' ? body.violationReason : null
+                violation_reason: body.eventType === 'name_violation' ? body.violationReason : null,
+                ...(musicTrack || {})
             })
         });
         return res.status(202).json({ recorded: true });

@@ -234,6 +234,10 @@
         .yt-frame-container iframe {
             width: 100%; height: 100%; border: none;
         }
+        .yt-frame-container audio, .yt-frame-container video {
+            width: 100%; height: 100%; border: none; display: block; background: #000;
+        }
+        .yt-frame-container video { object-fit: contain; }
 
         /* Click to Start / Unmute Overlay (Guaranteeing Autoplay Approval) */
         .audio-start-overlay {
@@ -642,7 +646,7 @@
     <!-- Floating Holographic YouTube Player Window -->
     <div class="yt-floating-monitor" id="ytMonitor">
         <div class="yt-monitor-header">
-            <span><i class="fab fa-youtube" style="color:var(--accent-red); margin-right:5px;"></i> AUDIO FEED // 100%</span>
+            <span id="introMediaHeader"><i class="fab fa-youtube" style="color:var(--accent-red); margin-right:5px;"></i> AUDIO FEED // 100%</span>
             <div style="display:flex; align-items:center; gap:8px;">
                 <a id="ytDirectLinkIntro" href="https://youtu.be/tGv7CUutzqU?t=24" target="_blank" title="Buka di YouTube" style="color:var(--accent-cyan); font-size:0.7rem;"><i class="fas fa-external-link-alt"></i></a>
                 <button id="toggleMonitorBtn" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.75rem;">_</button>
@@ -696,7 +700,7 @@
                     <div class="visitor-mode-card selected" id="optAutoVisitor">
                         <input type="radio" name="visitorMode" class="option-radio" checked>
                         <div class="option-title">NAMA OTOMATIS</div>
-                        <div class="option-desc">Gunakan nama pengunjung acak untuk sesi ini.</div>
+                        <div class="option-desc">Nama otomatis dari sistem; tidak perlu validasi nama.</div>
                         <div class="auto-name-badge">
                             <span id="autoNameDisplay">PHANTOM_NET_884</span>
                             <button type="button" id="rerollNameBtn" style="background:none; border:none; color:var(--accent-cyan); cursor:pointer;" title="Acak Ulang"><i class="fas fa-sync-alt"></i></button>
@@ -705,13 +709,13 @@
                     <div class="visitor-mode-card" id="optCustomVisitor">
                         <input type="radio" name="visitorMode" class="option-radio">
                         <div class="option-title">NAMA PILIHAN SENDIRI</div>
-                        <div class="option-desc">Masukkan nama asli, nama panggilan, atau nama panggung Anda.</div>
+                        <div class="option-desc">Nama pilihan sendiri wajib melewati validasi aturan nama.</div>
                         <div style="font-size:0.82rem; color:var(--accent-green); margin-top:8px;">[ KLIK UNTUK MENGISI NAMA ]</div>
                     </div>
                 </div>
 
                 <div class="custom-name-box" id="customNameBox">
-                    <div style="font-size: 0.92rem; color: #d3dde6; margin-bottom: 8px;">MASUKKAN NAMA ASLI, PANGGILAN, ATAU NAMA PANGGUNG:</div>
+                    <div style="font-size: 0.92rem; color: #d3dde6; margin-bottom: 8px;">MASUKKAN NAMA PILIHAN SENDIRI (WAJIB DIVALIDASI):</div>
                     <div class="custom-name-row">
                         <input type="text" class="custom-name-input" id="customVisitorInput" placeholder="Contoh: Budi Santoso" maxlength="40" autocomplete="name">
                         <button type="button" class="verify-name-btn" id="verifyNameBtn"><i class="fas fa-shield-alt"></i> VALIDASI</button>
@@ -779,6 +783,8 @@
         const DEFAULT_CONFIG = {
             introMusicUrl: 'https://youtu.be/tGv7CUutzqU?si=bKPNrqXvnLQAltD9&t=24',
             introMusicId: 'tGv7CUutzqU',
+            introMusicSource: 'youtube',
+            introMediaType: 'youtube',
             introStartTime: 24,
             introVolume: 100,
             introTitle: 'DITZZ THEME',
@@ -825,7 +831,7 @@
         }
 
         const hasCpanelSession = sessionStorage.getItem('ditzz_admin_auth') === 'true'
-            && ['admin', 'security'].includes(sessionStorage.getItem('ditzz_admin_role'));
+            && ['admin', 'security', 'reseller', 'partner'].includes(sessionStorage.getItem('ditzz_admin_role'));
         const isCpanelPreview = new URLSearchParams(window.location.search).get('cpanelPreview') === '1'
             && hasCpanelSession;
         let appConfig = Object.assign({}, DEFAULT_CONFIG, JSON.parse(localStorage.getItem('ditzz_config') || '{}'));
@@ -920,23 +926,44 @@
         }
         animThree();
 
-        /* ===== GUARANTEED YOUTUBE AUDIO PLAYER ENGINE ===== */
-        const storedAudioTime = Number(localStorage.getItem('ditzz_audio_time'));
-        const storedAudioAt = Number(localStorage.getItem('ditzz_audio_last_saved'));
+        /* ===== INTRO MUSIC PLAYER ENGINE ===== */
+        const storedAudioTime = Number(sessionStorage.getItem('ditzz_audio_time'));
+        const storedAudioAt = Number(sessionStorage.getItem('ditzz_audio_last_saved'));
         const storedAudioAge = Date.now() - storedAudioAt;
-        const savedAudioPlaying = localStorage.getItem('ditzz_audio_playing') !== 'false';
+        const savedAudioPlaying = sessionStorage.getItem('ditzz_audio_playing') !== 'false';
+        const introMusicSource = appConfig.introMusicSource === 'file' ? 'file' : 'youtube';
+        const introMediaType = appConfig.introMediaType === 'video' ? 'video' : 'audio';
+        const introMediaUrl = introMusicSource === 'file'
+            ? String(appConfig.introMediaUrl || appConfig.introMusicUrl || '')
+            : '';
         let currentYtId = appConfig.introMusicId || 'tGv7CUutzqU';
-        let currentStartSec = localStorage.getItem('ditzz_selected_track_id') === currentYtId && Number.isFinite(storedAudioTime) && storedAudioTime >= 0
+        let currentStartSec = ['intro', currentYtId].includes(sessionStorage.getItem('ditzz_selected_track_id')) && Number.isFinite(storedAudioTime) && storedAudioTime >= 0
             ? storedAudioTime + (savedAudioPlaying && storedAudioAge >= 0 && storedAudioAge < 120000 ? Math.floor(storedAudioAge / 1000) : 0)
             : Math.max(0, Number.isFinite(Number(appConfig.introStartTime)) ? Number(appConfig.introStartTime) : 24);
         let isStarted = false;
         let isAudioPlaying = false;
         const introTrackName = appConfig.introTitle || 'DITZZ THEME';
+        let introNativeMedia = null;
+        const introFrameContainer = document.getElementById('ytFrameContainer');
+        const introYouTubeIframe = document.getElementById('mainYtIframe');
+        const introMediaHeader = document.getElementById('introMediaHeader');
         document.getElementById('currentStreamLabel').textContent = introTrackName;
         document.getElementById('adminIntroTrackLabel').textContent = `${introTrackName} — hanya Admin yang dapat mengubah lagu pembuka.`;
 
         function sendYtIntroCommand(command, arg) {
-            const iframe = document.getElementById('mainYtIframe');
+            if (introNativeMedia) {
+                if (command === 'playVideo') introNativeMedia.play().catch(error => {
+                    isAudioPlaying = false;
+                    persistIntroMusicState();
+                    console.warn('Browser did not start the intro media.', error);
+                });
+                else if (command === 'pauseVideo') introNativeMedia.pause();
+                else if (command === 'setVolume') introNativeMedia.volume = Math.min(1, Math.max(0, Number(arg) / 100));
+                else if (command === 'mute') introNativeMedia.muted = true;
+                else if (command === 'unMute') introNativeMedia.muted = false;
+                return;
+            }
+            const iframe = introYouTubeIframe;
             if (iframe && iframe.contentWindow) {
                 iframe.contentWindow.postMessage(JSON.stringify({
                     event: 'command',
@@ -946,32 +973,114 @@
             }
         }
 
+        function persistIntroMusicState() {
+            sessionStorage.setItem('ditzz_selected_track_id', 'intro');
+            sessionStorage.setItem('ditzz_selected_track_name', introTrackName);
+            sessionStorage.setItem('ditzz_selected_track_source', introMusicSource === 'file' ? 'file' : 'admin');
+            sessionStorage.setItem('ditzz_selected_track_url', introMediaUrl);
+            sessionStorage.setItem('ditzz_selected_track_media_type', introMusicSource === 'file' ? introMediaType : 'youtube');
+            sessionStorage.setItem('ditzz_volume', '100');
+            sessionStorage.setItem('ditzz_audio_playing', String(isAudioPlaying));
+            sessionStorage.setItem('ditzz_audio_time', String(currentStartSec));
+            sessionStorage.setItem('ditzz_audio_last_saved', String(Date.now()));
+        }
+
         function loadYouTubeAudio(id, startSec) {
             if (musicFeatureUnavailable) return;
+            if (introNativeMedia) {
+                introNativeMedia.pause();
+                introNativeMedia.remove();
+                introNativeMedia = null;
+            }
+            introYouTubeIframe.hidden = false;
             currentYtId = id;
             currentStartSec = startSec || 0;
             audioPlayStartMs = Date.now();
             isAudioPlaying = true;
-            const iframe = document.getElementById('mainYtIframe');
             const directLink = document.getElementById('ytDirectLinkIntro');
             if (directLink) directLink.href = `https://youtu.be/${id}${currentStartSec ? '?t=' + currentStartSec : ''}`;
+            if (introMediaHeader) introMediaHeader.textContent = `▶ AUDIO FEED // ${id}`;
 
             // Explicit autoplay embed with unmuted volume, enablejsapi & loop parameters
-            iframe.onload = () => {
+            introYouTubeIframe.onload = () => {
                 setTimeout(() => {
                     sendYtIntroCommand('unMute');
                     sendYtIntroCommand('setVolume', 100);
                     sendYtIntroCommand('playVideo');
                 }, 400);
             };
-            iframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&start=${currentStartSec}&loop=1&playlist=${id}&controls=0&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}&modestbranding=1&playsinline=1&volume=100`;
-
-            localStorage.setItem('ditzz_selected_track_id', id);
-            localStorage.setItem('ditzz_volume', '100');
-            localStorage.setItem('ditzz_audio_playing', 'true');
-            localStorage.setItem('ditzz_audio_time', String(currentStartSec));
-            localStorage.setItem('ditzz_audio_last_saved', String(Date.now()));
+            introYouTubeIframe.src = `https://www.youtube.com/embed/${id}?autoplay=1&start=${currentStartSec}&loop=1&playlist=${id}&controls=0&disablekb=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(location.origin)}&modestbranding=1&playsinline=1&volume=100`;
+            persistIntroMusicState();
             document.getElementById('audioTrackLabel').textContent = `SIGNAL: ${id} // 100%`;
+        }
+
+        function loadIntroMusic(startSec) {
+            if (musicFeatureUnavailable) return;
+            if (introMusicSource !== 'file') {
+                loadYouTubeAudio(currentYtId, startSec);
+                return;
+            }
+            if (!/^https:\/\//i.test(introMediaUrl)) {
+                console.error('Configured intro media URL must use HTTPS.');
+                document.getElementById('audioTrackLabel').textContent = 'INTRO MEDIA URL TIDAK VALID';
+                return;
+            }
+            if (introNativeMedia) {
+                introNativeMedia.pause();
+                introNativeMedia.remove();
+            }
+            introYouTubeIframe.hidden = true;
+            introNativeMedia = document.createElement(introMediaType);
+            const media = introNativeMedia;
+            media.controls = true;
+            media.preload = 'metadata';
+            media.loop = true;
+            if (introMediaType === 'video') media.playsInline = true;
+            media.style.width = '100%';
+            media.style.height = '100%';
+            media.src = introMediaUrl;
+            introFrameContainer.appendChild(media);
+            currentStartSec = Math.max(0, Number(startSec) || 0);
+            audioPlayStartMs = Date.now();
+            isAudioPlaying = true;
+            if (introMediaHeader) introMediaHeader.textContent = `${introMediaType === 'video' ? '▶ VIDEO' : '▶ AUDIO'} FEED // ADMIN`;
+            const directLink = document.getElementById('ytDirectLinkIntro');
+            if (directLink) directLink.href = introMediaUrl;
+            media.addEventListener('loadedmetadata', () => {
+                if (introNativeMedia !== media) return;
+                if (Number.isFinite(media.duration)) media.currentTime = Math.min(currentStartSec, Math.max(0, media.duration - 0.1));
+                media.volume = 1;
+                media.play().catch(error => {
+                    isAudioPlaying = false;
+                    console.warn('Browser did not start the intro media.', error);
+                    document.getElementById('audioTrackLabel').textContent = 'KLIK PUTAR PADA PLAYER UNTUK MELANJUTKAN';
+                });
+            }, { once: true });
+            media.addEventListener('timeupdate', () => {
+                if (introNativeMedia !== media) return;
+                currentStartSec = media.currentTime;
+                audioPlayStartMs = Date.now();
+                persistIntroMusicState();
+            });
+            media.addEventListener('play', () => {
+                if (introNativeMedia !== media) return;
+                isAudioPlaying = true;
+                audioPlayStartMs = Date.now();
+                persistIntroMusicState();
+            });
+            media.addEventListener('pause', () => {
+                if (introNativeMedia !== media) return;
+                currentStartSec = media.currentTime;
+                isAudioPlaying = false;
+                persistIntroMusicState();
+            });
+            media.addEventListener('error', () => {
+                if (introNativeMedia !== media) return;
+                isAudioPlaying = false;
+                document.getElementById('audioTrackLabel').textContent = 'FILE MUSIK PEMBUKA TIDAK DAPAT DIMUAT';
+            });
+            persistIntroMusicState();
+            document.getElementById('audioTrackLabel').textContent = `${introTrackName} // 100%`;
         }
 
         function updateFullscreenPrompt() {
@@ -1036,7 +1145,7 @@
             if (!isCpanelPreview) window.DitzzSiteEffects.markFullscreenRequired();
             isStarted = true;
             document.getElementById('audioStartOverlay').classList.add('hidden');
-            loadYouTubeAudio(currentYtId, currentStartSec);
+            loadIntroMusic(currentStartSec);
             window.setTimeout(() => {
                 const monitor = document.getElementById('ytMonitor');
                 const toggle = document.getElementById('toggleMonitorBtn');
@@ -1111,7 +1220,7 @@
             if (!isStarted) {
                 isStarted = true;
                 document.getElementById('audioStartOverlay').classList.add('hidden');
-                loadYouTubeAudio(currentYtId, currentStartSec);
+                loadIntroMusic(currentStartSec);
             }
             if (progressTimer) clearInterval(progressTimer);
             progressBar.style.width = '100%';
@@ -1154,18 +1263,18 @@
             return `Pengunjung ${Math.floor(Math.random() * 9000 + 1000)}`;
         }
 
-        let currentAutoName = localStorage.getItem('ditzz_visitor_default_name') || generateAutoName();
-        localStorage.setItem('ditzz_visitor_default_name', currentAutoName);
+        let currentAutoName = sessionStorage.getItem('ditzz_visitor_default_name') || generateAutoName();
+        sessionStorage.setItem('ditzz_visitor_default_name', currentAutoName);
         document.getElementById('autoNameDisplay').textContent = currentAutoName;
 
         document.getElementById('rerollNameBtn').addEventListener('click', (e) => {
             e.stopPropagation();
             currentAutoName = generateAutoName();
             document.getElementById('autoNameDisplay').textContent = currentAutoName;
-            localStorage.setItem('ditzz_visitor_default_name', currentAutoName);
+            sessionStorage.setItem('ditzz_visitor_default_name', currentAutoName);
         });
 
-        let chosenVisitorMode = localStorage.getItem('ditzz_visitor_mode') === 'custom' ? 'custom' : 'auto';
+        let chosenVisitorMode = sessionStorage.getItem('ditzz_visitor_mode') === 'custom' ? 'custom' : 'auto';
         const optAutoVis = document.getElementById('optAutoVisitor');
         const optCustomVis = document.getElementById('optCustomVisitor');
         const customNameBox = document.getElementById('customNameBox');
@@ -1181,7 +1290,7 @@
             optAutoVis.querySelector('input').checked = false;
             optCustomVis.querySelector('input').checked = true;
             customNameBox.classList.add('show');
-            customVisInput.value = localStorage.getItem('ditzz_visitor_name') || '';
+            customVisInput.value = sessionStorage.getItem('ditzz_visitor_name') || '';
         }
         let approvedVisitorNames = (appConfig.approvedVisitors || []).map(normalizeVisitorName);
         let blockedVisitorTerms = Array.isArray(appConfig.blockedVisitorTerms)
@@ -1215,7 +1324,7 @@
 
         optAutoVis.addEventListener('click', () => {
             chosenVisitorMode = 'auto';
-            localStorage.setItem('ditzz_visitor_mode', 'auto');
+            sessionStorage.setItem('ditzz_visitor_mode', 'auto');
             optAutoVis.classList.add('selected'); optAutoVis.querySelector('input').checked = true;
             optCustomVis.classList.remove('selected'); optCustomVis.querySelector('input').checked = false;
             customNameBox.classList.remove('show');
@@ -1224,7 +1333,7 @@
 
         optCustomVis.addEventListener('click', () => {
             chosenVisitorMode = 'custom';
-            localStorage.setItem('ditzz_visitor_mode', 'custom');
+            sessionStorage.setItem('ditzz_visitor_mode', 'custom');
             optCustomVis.classList.add('selected'); optCustomVis.querySelector('input').checked = true;
             optAutoVis.classList.remove('selected'); optAutoVis.querySelector('input').checked = false;
             customNameBox.classList.add('show');
@@ -1276,9 +1385,16 @@
         }
 
         async function recordVisitorActivity(eventType, visitorName, violationReason) {
-            if (!window.DitzzData || typeof window.DitzzData.recordVisitorEvent !== 'function') return false;
+            if (!window.DitzzData || typeof window.DitzzData.recordVisitorEvent !== 'function') {
+                console.warn('Visitor activity recorder is unavailable.');
+                return false;
+            }
             try {
-                await window.DitzzData.recordVisitorEvent(eventType, visitorName, violationReason);
+                const recorded = await window.DitzzData.recordVisitorEvent(eventType, visitorName, violationReason);
+                if (!recorded) {
+                    console.warn('Visitor activity was not recorded because the database is unavailable.');
+                    return false;
+                }
                 return true;
             } catch (error) {
                 console.warn('Visitor activity could not be recorded.', error);
@@ -1413,64 +1529,72 @@
             const monitor = document.getElementById('ytMonitor');
             const trackLabel = document.getElementById('audioTrackLabel');
             if (nextUnavailable) {
-                if (isAudioPlaying) currentStartSec += Math.floor((Date.now() - audioPlayStartMs) / 1000);
+                if (introNativeMedia) currentStartSec = introNativeMedia.currentTime || currentStartSec;
+                else if (isAudioPlaying) currentStartSec += (Date.now() - audioPlayStartMs) / 1000;
                 audioPlayStartMs = Date.now();
                 isAudioPlaying = false;
                 sendYtIntroCommand('pauseVideo');
-                localStorage.setItem('ditzz_audio_time', String(currentStartSec));
-                localStorage.setItem('ditzz_audio_last_saved', String(Date.now()));
-                localStorage.setItem('ditzz_audio_playing', 'false');
+                persistIntroMusicState();
                 if (monitor) monitor.style.display = 'none';
                 if (trackLabel) trackLabel.textContent = 'MUSIC OFFLINE';
             } else {
                 if (monitor) monitor.style.display = '';
-                if (trackLabel) trackLabel.textContent = `SIGNAL: ${currentYtId} // 100%`;
+                if (trackLabel) trackLabel.textContent = introMusicSource === 'file'
+                    ? `${introTrackName} // 100%`
+                    : `SIGNAL: ${currentYtId} // 100%`;
                 const notice = document.getElementById('musicAvailabilityNotice');
                 if (notice) notice.remove();
-                if (isStarted) loadYouTubeAudio(currentYtId, currentStartSec);
+                if (isStarted) loadIntroMusic(currentStartSec);
             }
         });
         setInterval(() => {
             if (isStarted && isAudioPlaying) {
-                const currentElapsedSec = currentStartSec + Math.floor((Date.now() - audioPlayStartMs) / 1000);
-                localStorage.setItem('ditzz_audio_time', currentElapsedSec);
-                localStorage.setItem('ditzz_audio_last_saved', Date.now());
+                if (introNativeMedia) currentStartSec = introNativeMedia.currentTime || currentStartSec;
+                else currentStartSec += (Date.now() - audioPlayStartMs) / 1000;
+                audioPlayStartMs = Date.now();
+                persistIntroMusicState();
             }
         }, 300);
 
         executeBtn.addEventListener('click', async () => {
             if (executeBtn.disabled) return;
 
-            const finalVisitorName = (chosenVisitorMode === 'custom' && isCustomNameValid)
+            const usesCustomName = chosenVisitorMode === 'custom';
+            const finalVisitorName = (usesCustomName && isCustomNameValid)
                 ? customVisInput.value.trim().toUpperCase()
                 : currentAutoName;
-            try {
-                if (await window.DitzzData.checkVisitorBlocked(finalVisitorName)) {
-                    recordVisitorActivity('name_violation', finalVisitorName, 'blocked_name');
-                    window.DitzzSiteEffects.blockVisitor(finalVisitorName, 'blokir global Supabase');
+
+            if (usesCustomName) {
+                try {
+                    if (await window.DitzzData.checkVisitorBlocked(finalVisitorName)) {
+                        recordVisitorActivity('name_violation', finalVisitorName, 'blocked_name');
+                        window.DitzzSiteEffects.blockVisitor(finalVisitorName, 'blokir global Supabase');
+                        return;
+                    }
+                } catch (error) {
+                    nameFeedback.className = 'name-status-feedback error';
+                    nameFeedback.textContent = `Pemeriksaan database gagal: ${error.message}`;
                     return;
                 }
-            } catch (error) {
-                nameFeedback.className = 'name-status-feedback error';
-                nameFeedback.textContent = `Pemeriksaan database gagal: ${error.message}`;
-                return;
             }
 
-            const selectedSongId = currentYtId;
+            const selectedSongId = 'intro';
             const selectedSongName = introTrackName;
 
-            localStorage.setItem('ditzz_visitor_name', finalVisitorName);
-            localStorage.setItem('ditzz_visitor_mode', chosenVisitorMode);
-            recordVisitorActivity('name_submitted', finalVisitorName);
-            localStorage.setItem('ditzz_selected_track_id', selectedSongId);
-            localStorage.setItem('ditzz_selected_track_name', selectedSongName);
-            localStorage.setItem('ditzz_volume', '100');
-            localStorage.setItem('ditzz_audio_playing', String(isAudioPlaying));
+            sessionStorage.setItem('ditzz_visitor_name', finalVisitorName);
+            sessionStorage.setItem('ditzz_visitor_mode', chosenVisitorMode);
+            await recordVisitorActivity('name_submitted', finalVisitorName);
+            sessionStorage.setItem('ditzz_selected_track_id', selectedSongId);
+            sessionStorage.setItem('ditzz_selected_track_name', selectedSongName);
+            sessionStorage.setItem('ditzz_volume', '100');
+            sessionStorage.setItem('ditzz_audio_playing', String(isAudioPlaying));
 
             // Exact second passed forward
-            const finalElapsedSec = currentStartSec + (isAudioPlaying ? Math.floor((Date.now() - audioPlayStartMs) / 1000) : 0);
-            localStorage.setItem('ditzz_audio_time', finalElapsedSec);
-            localStorage.setItem('ditzz_audio_last_saved', Date.now());
+            const finalElapsedSec = Math.floor(introNativeMedia
+                ? (introNativeMedia.currentTime || currentStartSec)
+                : currentStartSec + (isAudioPlaying ? (Date.now() - audioPlayStartMs) / 1000 : 0));
+            sessionStorage.setItem('ditzz_audio_time', finalElapsedSec);
+            sessionStorage.setItem('ditzz_audio_last_saved', Date.now());
             audioPlayStartMs = Date.now();
 
             document.getElementById('warpOverlay').classList.add('active');

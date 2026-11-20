@@ -118,6 +118,14 @@
         }
         .admin-badge {
             display: flex; align-items: center; gap: 10px; overflow: hidden;
+            min-width: 0; padding: 0; border: 0; background: transparent; color: inherit;
+            font: inherit; text-align: left; cursor: pointer;
+        }
+        .admin-badge:hover .admin-avatar, .admin-badge:focus-visible .admin-avatar {
+            box-shadow: var(--glow-green);
+        }
+        .admin-badge:focus-visible {
+            outline: 1px solid var(--accent-green); outline-offset: 5px;
         }
         .admin-avatar {
             width: 32px; height: 32px; border-radius: 4px;
@@ -132,6 +140,50 @@
             background: rgba(0,255,255,.08); color: var(--accent-cyan); font: 700 1rem Orbitron,sans-serif;
         }
         .profile-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-modal[hidden] { display: none !important; }
+        .profile-modal {
+            position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center;
+            padding: 18px; background: rgba(3, 7, 10, .82); backdrop-filter: blur(8px);
+        }
+        .profile-modal-panel {
+            width: min(620px, 100%); max-height: min(92vh, 860px); overflow-y: auto;
+            border: 1px solid var(--accent-green); background: var(--bg-secondary);
+            box-shadow: var(--glow-green); animation: profileModalEnter .2s ease-out;
+        }
+        .profile-modal-header {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            margin-bottom: 20px; color: var(--accent-green);
+            font: 700 .9rem 'Orbitron', sans-serif;
+        }
+        .profile-modal-close {
+            border: 1px solid var(--border-dim); padding: 7px 10px; background: transparent;
+            color: var(--text-primary); cursor: pointer;
+        }
+        .profile-modal-close:hover { border-color: var(--accent-red); color: var(--accent-red); }
+        .music-track-row {
+            display: grid; grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) auto;
+            gap: 12px; align-items: end; padding: 14px; margin-bottom: 12px;
+            border: 1px solid var(--border-dim); background: rgba(0, 255, 65, .025);
+        }
+        .music-track-row .music-track-upload, .music-track-row .music-track-url { grid-column: 1 / -1; }
+        .music-track-row .music-track-remove { color: var(--accent-red); border-color: rgba(255, 0, 64, .4); }
+        .page-content-item {
+            padding: 14px; margin: 12px 0; border: 1px solid var(--border-dim);
+            background: rgba(0, 255, 65, .025);
+        }
+        .page-content-item-grid {
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+        }
+        .page-content-item .page-content-remove { color: var(--accent-red); border-color: rgba(255, 0, 64, .4); }
+        @media (max-width: 700px) {
+            .music-track-row { grid-template-columns: minmax(0, 1fr); }
+            .music-track-row .music-track-upload, .music-track-row .music-track-url { grid-column: auto; }
+            .page-content-item-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+        @keyframes profileModalEnter {
+            from { opacity: 0; transform: translateY(10px) scale(.99); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
         .account-photo-thumb {
             width: 30px; height: 30px; margin-right: 8px; border: 1px solid var(--border-color);
             border-radius: 50%; object-fit: cover; vertical-align: middle;
@@ -286,6 +338,22 @@
             gap: 20px;
         }
         .form-group { margin-bottom: 18px; }
+        .security-page-permissions {
+            margin: 4px 0 20px; padding: 18px; border: 1px solid var(--border-dim);
+            background: rgba(0, 229, 255, .035); min-width: 0;
+        }
+        .security-page-permissions legend {
+            padding: 0 8px; color: var(--accent-cyan); font: 700 .72rem 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+        }
+        .security-page-permission-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 16px;
+            margin-top: 12px;
+        }
+        .security-page-permission-grid label {
+            display: flex; align-items: center; gap: 9px; color: var(--text-primary); font-size: .82rem;
+        }
+        .security-page-permission-grid input { accent-color: var(--accent-cyan); }
         .form-label {
             display: block; font-size: 0.75rem; color: var(--text-secondary);
             margin-bottom: 8px; letter-spacing: 1px;
@@ -443,7 +511,7 @@
                 <li><a class="menu-item" data-tab="music"><i class="fas fa-music"></i> <span>Music Manager</span></a></li>
 
                 <li class="menu-cat">CONTENT & RULES</li>
-                <li><a class="menu-item" data-tab="content"><i class="fas fa-file-shield"></i> <span>Rules & Directives</span></a></li>
+                <li><a class="menu-item" data-tab="content"><i class="fas fa-file-shield"></i> <span>Page Content & Directives</span></a></li>
 
                 <li class="menu-cat">STORE & COMMERCE</li>
                 <li><a class="menu-item" data-tab="products"><i class="fas fa-box-open"></i> <span>Product Catalog</span></a></li>
@@ -462,16 +530,18 @@
             </ul>
 
             <div class="sidebar-footer">
-                <div class="admin-badge">
+                <button class="admin-badge" id="openAccountProfileBtn" type="button"
+                    aria-label="Buka pengaturan profil dan akun" aria-haspopup="dialog"
+                    aria-controls="accountProfileModal" title="Buka profil akun">
                     <div class="admin-avatar" id="adminAvatar">
                         <span id="adminAvatarInitials">DZ</span>
                         <img id="adminProfilePhoto" alt="" hidden>
                     </div>
                     <div>
                         <div class="admin-name" id="adminUsername">admin</div>
-                        <div class="admin-role" id="adminRoleLabel">ADMIN</div>
+                        <div class="admin-role" id="adminRoleLabel">ADMIN-DEVELOPER-DITZZ</div>
                     </div>
-                </div>
+                </button>
                 <button class="logout-btn" id="logoutBtn" title="Terminate Session">
                     <i class="fas fa-power-off"></i>
                 </button>
@@ -610,9 +680,22 @@
                         </p>
                         <div class="form-grid">
                             <div class="form-group">
+                                <label class="form-label" for="cfgIntroSource">SUMBER MUSIK INTRO:</label>
+                                <select class="form-select" id="cfgIntroSource">
+                                    <option value="youtube">YouTube</option>
+                                    <option value="file">File audio/video dari Admin</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label class="form-label"><span>*</span> YOUTUBE URL / VIDEO ID INTRO:</label>
                                 <input type="text" class="form-input" id="cfgIntroMusicUrl" placeholder="https://youtu.be/tGv7CUutzqU?t=24" value="https://youtu.be/tGv7CUutzqU?t=24">
                                 <div class="input-hint">Contoh: https://youtu.be/tGv7CUutzqU atau ID tGv7CUutzqU</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="cfgIntroMediaFile">UNGGAH FILE INTRO ADMIN:</label>
+                                <input type="file" class="form-input" id="cfgIntroMediaFile" accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,audio/aac,video/mp4,video/webm,video/ogg">
+                                <div class="input-hint">File hanya tersedia setelah diunggah ke Storage project.</div>
+                                <input type="url" class="form-input" id="cfgIntroMediaUrl" placeholder="URL file intro di Storage" readonly>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">START TIME (DETIK):</label>
@@ -637,7 +720,7 @@
                             <span class="badge-status badge-in">VOLUME 100% · PERSISTENT HUD</span>
                         </div>
                         <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 20px;">
-                            Musik yang akan diputar di halaman utama (Home, Store, About, Contact). Pengguna dapat memilih untuk melanjutkan lagu intro atau menggunakan lagu berbeda dari playlist berikut.
+                            Playlist dibagikan ke halaman publik melalui database. Tambahkan lagu YouTube atau unggah file audio/video sebanyak yang diperlukan; pengunjung dapat memilihnya dari Home.
                         </p>
                         <div class="form-grid">
                             <div class="form-group">
@@ -646,24 +729,10 @@
                                     <option value="true">AKTIF — putar musik di halaman publik</option>
                                     <option value="false">NONAKTIF — hentikan musik website</option>
                                 </select>
-                                <div class="input-hint">Admin atau Keamanan dapat mematikan musik kapan saja. Status diterapkan pada halaman yang sedang terbuka di browser ini.</div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">ALTERNATIVE TRACK 1 (NAME & YOUTUBE ID):</label>
-                                <input type="text" class="form-input" id="cfgTrack1Name" value="CYBERPUNK NEON DRIVE" style="margin-bottom: 8px;">
-                                <input type="text" class="form-input" id="cfgTrack1Id" value="4xDzrJKXOOY" placeholder="YouTube Video ID">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">ALTERNATIVE TRACK 2 (NAME & YOUTUBE ID):</label>
-                                <input type="text" class="form-input" id="cfgTrack2Name" value="SYNTHWAVE HACKER PROTOCOL" style="margin-bottom: 8px;">
-                                <input type="text" class="form-input" id="cfgTrack2Id" value="79B5wX0hZ-0" placeholder="YouTube Video ID">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">ALTERNATIVE TRACK 3 (NAME & YOUTUBE ID):</label>
-                                <input type="text" class="form-input" id="cfgTrack3Name" value="DARK AMBIENT MAINFRAME" style="margin-bottom: 8px;">
-                                <input type="text" class="form-input" id="cfgTrack3Id" value="kJQP7kiw5Fk" placeholder="YouTube Video ID">
                             </div>
                         </div>
+                        <div id="musicTrackList" aria-live="polite"></div>
+                        <button class="action-btn" id="addMusicTrackBtn" type="button"><i class="fas fa-plus"></i> TAMBAH LAGU / VIDEO</button>
                     </div>
                 </section>
 
@@ -749,6 +818,45 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                             <label class="form-label">TOMBOL MASUK (CTA TEXT):</label>
                             <input type="text" class="form-input" id="cfgEnterBtnText" value="INITIALIZE ACCESS // MASUK KE NEW ERA">
                         </div>
+                    </div>
+
+                    <div class="card-panel" id="featurePageContentPanel">
+                        <div class="card-header">
+                            <div class="card-title"><i class="fas fa-photo-video"></i> PUBLIC PAGE CONTENT MANAGER</div>
+                        </div>
+                        <p class="input-hint">Edit Updates, Events, Gallery, FAQ, Visitor Lounge, dan Field Guide di sini. Perubahan dipublikasikan bersama tombol DEPLOY CHANGES.</p>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="pageContentTarget">HALAMAN:</label>
+                                <select class="form-select" id="pageContentTarget">
+                                    <option value="updates">Updates</option>
+                                    <option value="events">Events</option>
+                                    <option value="gallery">Gallery</option>
+                                    <option value="faq">FAQ</option>
+                                    <option value="community">Visitor Lounge</option>
+                                    <option value="guide">Field Guide</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="pageContentTitle">JUDUL HALAMAN:</label>
+                                <input class="form-input" id="pageContentTitle" maxlength="120">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="pageContentKicker">LABEL KECIL:</label>
+                                <input class="form-input" id="pageContentKicker" maxlength="160">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="pageContentDescription">DESKRIPSI HALAMAN:</label>
+                                <textarea class="form-textarea" id="pageContentDescription" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group" id="pageContentNoticeGroup" hidden>
+                            <label class="form-label" for="pageContentNotice">PESAN VISITOR LOUNGE:</label>
+                            <textarea class="form-textarea" id="pageContentNotice" rows="3"></textarea>
+                        </div>
+                        <div id="pageContentItems" aria-live="polite"></div>
+                        <button class="action-btn" type="button" id="addPageContentItemBtn"><i class="fas fa-plus"></i> TAMBAH KONTEN</button>
+                        <p class="input-hint">Foto, GIF, animasi WebP, dan video dapat dipilih dari perangkat lalu disimpan di Supabase Storage; alamat medianya tersimpan bersama konten database. Tidak ada batas ukuran dari formulir, tetapi batas penyimpanan/unggah tetap mengikuti kuota dan konfigurasi project Supabase.</p>
                     </div>
                 </section>
 
@@ -913,12 +1021,21 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                                 <label class="form-label" for="announcementMessage">TEKS PENGUMUMAN (MAKS. 2000 KARAKTER):</label>
                                 <textarea class="form-textarea" id="announcementMessage" maxlength="2000" required></textarea>
                             </div>
+                            <fieldset class="form-group">
+                                <legend class="form-label">TAMPILKAN KEPADA:</legend>
+                                <div class="form-grid">
+                                    <label><input type="checkbox" name="announcementTarget" value="visitor" checked> Visitor website</label>
+                                    <label><input type="checkbox" name="announcementTarget" value="security" checked> Keamanan</label>
+                                    <label><input type="checkbox" name="announcementTarget" value="reseller" checked> Reseller</label>
+                                    <label><input type="checkbox" name="announcementTarget" value="partner" checked> Partner</label>
+                                </div>
+                            </fieldset>
                             <button class="action-btn btn-save" type="submit"><i class="fas fa-paper-plane"></i> TERBITKAN PENGUMUMAN</button>
                         </form>
                     </div>
                     <div class="card-panel">
                         <div class="card-header"><div class="card-title"><i class="fas fa-clock"></i> PENGUMUMAN AKTIF / TERAKHIR</div></div>
-                        <div class="table-responsive"><table class="cyber-table"><thead><tr><th>PESAN</th><th>ADMIN</th><th>BERAKHIR</th><th>AKSI</th></tr></thead><tbody id="announcementList"></tbody></table></div>
+                        <div class="table-responsive"><table class="cyber-table"><thead><tr><th>PESAN</th><th>PENERIMA</th><th>ADMIN</th><th>BERAKHIR</th><th>AKSI</th></tr></thead><tbody id="announcementList"></tbody></table></div>
                         <p class="input-hint" id="announcementListEmpty" role="status">Belum ada pengumuman.</p>
                     </div>
                     <div class="card-panel">
@@ -938,7 +1055,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.7;margin-bottom:16px;">
                             Log dibatasi pada kunjungan halaman, nama yang dipilih, hasil pemeriksaan aturan, status dukungan dan penggunaan fullscreen, serta balasan pengumuman. IP disamarkan menjadi subnet /24 (IPv4) atau /48 (IPv6). Log berusia lebih dari 30 hari dijadwalkan untuk dihapus oleh Vercel Cron (perlu konfigurasi CRON_SECRET). Password, isi ketikan, dan aktivitas di luar website tidak dicatat.
                         </p>
-                        <div class="table-responsive"><table class="cyber-table"><thead><tr><th>WAKTU</th><th>NAMA VISITOR</th><th>IP DISAMARKAN</th><th>HALAMAN / AKSI</th><th>DUKUNG FULLSCREEN</th><th>FULLSCREEN AKTIF</th><th>ATURAN</th></tr></thead><tbody id="visitorActivityList"></tbody></table></div>
+                        <div class="table-responsive"><table class="cyber-table"><thead><tr><th>WAKTU</th><th>NAMA VISITOR</th><th>IP DISAMARKAN</th><th>HALAMAN / AKSI</th><th>LAGU</th><th>DUKUNG FULLSCREEN</th><th>FULLSCREEN AKTIF</th><th>ATURAN</th></tr></thead><tbody id="visitorActivityList"></tbody></table></div>
                         <p class="input-hint" id="visitorActivityEmpty" role="status">Belum ada aktivitas tersimpan.</p>
                     </div>
                 </section>
@@ -969,7 +1086,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         </div>
                     </div>
 
-                    <div class="card-panel" style="border-color: rgba(255,0,64,0.4);">
+                    <div class="card-panel" id="settingsDangerZonePanel" style="border-color: rgba(255,0,64,0.4);">
                         <div class="card-header">
                             <div class="card-title" style="color: var(--accent-red);"><i class="fas fa-exclamation-triangle"></i> DANGER ZONE // RESET SYSTEM</div>
                         </div>
@@ -1012,48 +1129,10 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                             <span class="badge-status badge-limited">SUPABASE SHARED DATA</span>
                         </div>
                         <p style="font-size:.82rem;color:var(--text-secondary);line-height:1.7;margin-bottom:18px;">
-                            Profil, kredensial, produk, pesan, moderasi, dan pengaturan disimpan di Supabase. Login memakai Supabase Auth; kredensial tidak disimpan di browser.
+                            Pengaturan nama, username, password, dan foto profil akun tersedia dengan mengeklik profil di bagian bawah sidebar. Login memakai Supabase Auth; kredensial tidak disimpan di browser.
                         </p>
-                        <form id="securityCredentialsForm">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label" for="securityDisplayName">NAMA TAMPILAN:</label>
-                                    <input type="text" class="form-input" id="securityDisplayName" required minlength="1" maxlength="50" autocomplete="name">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="securityNewUsername">USERNAME:</label>
-                                    <input type="text" class="form-input" id="securityNewUsername" required minlength="3" maxlength="32" autocomplete="username">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="securityCurrentPassword">PASSWORD SAAT INI:</label>
-                                    <input type="password" class="form-input" id="securityCurrentPassword" required autocomplete="current-password">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="securityNewPassword">PASSWORD BARU (OPSIONAL):</label>
-                                    <input type="password" class="form-input" id="securityNewPassword" minlength="12" autocomplete="new-password">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="securityConfirmPassword">ULANGI PASSWORD BARU:</label>
-                                    <input type="password" class="form-input" id="securityConfirmPassword" minlength="12" autocomplete="new-password">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="securityProfilePhoto">FOTO PROFIL (PNG / GIF / WEBP / JPG):</label>
-                                    <input type="file" class="form-input" id="securityProfilePhoto" accept="image/png,image/gif,image/webp,image/jpeg">
-                                    <div class="input-hint">GIF animasi didukung. File diunggah ke Supabase Storage; batas ukuran mengikuti konfigurasi Storage dan paket project.</div>
-                                    <label class="input-hint"><input type="checkbox" id="securityClearProfilePhoto"> Hapus foto profil saat ini</label>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">PRATINJAU FOTO:</label>
-                                    <div class="profile-photo-preview" id="securityProfilePreview">
-                                        <span id="securityProfileInitials">AD</span>
-                                        <img id="securityProfilePreviewImage" alt="Pratinjau foto profil" hidden>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="submit" class="action-btn btn-save"><i class="fas fa-user-edit"></i> SIMPAN PROFIL</button>
-                        </form>
                     </div>
-                    <div class="card-panel">
+                    <div class="card-panel" id="approvalNamesPanel">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-user-check"></i> APPROVAL NAMA PENGUNJUNG</div>
                         </div>
@@ -1067,7 +1146,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         </div>
                         <button type="button" class="action-btn btn-save" id="saveApprovedVisitorsBtn"><i class="fas fa-save"></i> SIMPAN PERSETUJUAN</button>
                     </div>
-                    <div class="card-panel">
+                    <div class="card-panel" id="blockedNamesPanel">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-ban"></i> DAFTAR NAMA / KATA TERLARANG</div>
                         </div>
@@ -1085,7 +1164,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                             <button type="button" class="action-btn" id="clearVisitorBlockBtn"><i class="fas fa-unlock"></i> BUKA BLOKIR PERANGKAT INI</button>
                         </div>
                     </div>
-                    <div class="card-panel">
+                    <div class="card-panel" id="featureStatusPanel">
                         <div class="card-header">
                             <div class="card-title"><i class="fas fa-toggle-on"></i> STATUS & PEMELIHARAAN FITUR</div>
                         </div>
@@ -1106,7 +1185,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                             <div class="form-group"><label class="form-label" for="featureGuideStatus">FIELD GUIDE:</label><select class="form-select feature-status-select" id="featureGuideStatus"><option value="available">Tersedia</option><option value="comingSoon">Segera hadir</option><option value="maintenance">Sedang diperbarui</option></select></div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="featureStatusMessage">PESAN STATUS UNTUK VISITOR:</label>
+                            <label class="form-label" for="featureStatusMessage">PESAN KHUSUS FITUR TERPILIH:</label>
                             <textarea class="form-textarea" id="featureStatusMessage" placeholder="Contoh: Kami sedang menyiapkan pembaruan agar pengalaman Anda lebih nyaman."></textarea>
                         </div>
                         <div class="form-grid" style="margin-top:18px">
@@ -1116,9 +1195,13 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                                     <option value="home">Home</option><option value="about">About</option><option value="store">Store</option><option value="contact">Contact</option><option value="music">Music</option><option value="updates">Updates</option><option value="events">Events</option><option value="gallery">Gallery</option><option value="faq">FAQ</option><option value="community">Visitor Lounge</option><option value="guide">Field Guide</option>
                                 </select>
                             </div>
+                            <div class="form-group"><label class="form-label" for="featureStatusTitle">JUDUL KHUSUS FITUR (OPSIONAL):</label><input class="form-input" id="featureStatusTitle" maxlength="100" placeholder="Contoh: HOME SEDANG DI-UPDATE"></div>
                             <div class="form-group"><label class="form-label" for="featureStatusEndsAt">PERKIRAAN SELESAI:</label><input class="form-input" id="featureStatusEndsAt" type="datetime-local"></div>
                             <div class="form-group"><label class="form-label" for="featureStatusMusicId">ID LAGU YOUTUBE:</label><input class="form-input" id="featureStatusMusicId" maxlength="11" placeholder="Opsional"></div>
-                            <div class="form-group"><label class="form-label" for="featureStatusVideoUrl">VIDEO LATAR HTTPS (MP4/WEBM/OGG):</label><input class="form-input" id="featureStatusVideoUrl" type="url" placeholder="https://.../status.mp4"></div>
+                            <div class="form-group"><label class="form-label" for="featureStatusVideoUrl">LATAR HTTPS (VIDEO / GIF / WEBP / GAMBAR):</label><input class="form-input" id="featureStatusVideoUrl" type="url" placeholder="https://.../status.mp4"></div>
+                            <div class="form-group"><label class="form-label" for="featureStatusBackgroundFile">UNGGAH LATAR DARI PERANGKAT (MP4 / GIF / WEBP):</label><input class="form-input" id="featureStatusBackgroundFile" type="file" accept="video/mp4,video/webm,video/ogg,image/gif,image/webp,image/apng,image/png,image/jpeg"><div class="input-hint">File akan diunggah ke Supabase Storage; ukuran mengikuti batas project Anda.</div></div>
+                            <div class="form-group"><label class="form-label" for="featureStatusAudioUrl">AUDIO PEMELIHARAAN HTTPS (OPSIONAL):</label><input class="form-input" id="featureStatusAudioUrl" type="url" placeholder="https://.../maintenance.mp3"></div>
+                            <div class="form-group"><label class="form-label" for="featureStatusAudioFile">UNGGAH AUDIO DARI PERANGKAT:</label><input class="form-input" id="featureStatusAudioFile" type="file" accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,audio/aac"></div>
                         </div>
                         <div class="form-group">
                             <label class="form-label" for="featureRepairPlan">YANG SEDANG DIPERBAIKI (OPSIONAL):</label>
@@ -1128,24 +1211,40 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                     </div>
                     <div class="card-panel" id="securityAccountsPanel">
                         <div class="card-header">
-                            <div class="card-title"><i class="fas fa-users-cog"></i> KELOLA AKUN ADMIN & KEAMANAN</div>
+                            <div class="card-title"><i class="fas fa-users-cog"></i> KELOLA AKUN & AKSES ROLE</div>
                         </div>
                         <p style="font-size:.8rem;color:var(--text-secondary);line-height:1.7;margin-bottom:14px;">
-                            Admin dan Keamanan dapat mengelola akun Admin maupun Keamanan. Jangan hapus satu-satunya akun Admin agar akses CPanel tetap tersedia.
+                            Hanya Admin yang dapat membuat dan mengelola akun/role. Keamanan, Reseller, dan Partner tidak memperoleh izin edit otomatis; pilih halaman yang boleh diedit untuk masing-masing akun.
                         </p>
                         <form id="securityAccountForm">
                             <input type="hidden" id="securityAccountOriginalUsername">
                             <div class="form-grid">
                                 <div class="form-group"><label class="form-label" for="securityAccountUsername">USERNAME:</label><input type="text" class="form-input" id="securityAccountUsername" required minlength="3" maxlength="32"></div>
                                 <div class="form-group"><label class="form-label" for="securityAccountDisplayName">NAMA TAMPILAN:</label><input type="text" class="form-input" id="securityAccountDisplayName" maxlength="50"></div>
-                                <div class="form-group"><label class="form-label" for="securityAccountRole">ROLE:</label><select class="form-select" id="securityAccountRole"><option value="security">Keamanan</option><option value="admin">Admin</option></select></div>
+                                <div class="form-group"><label class="form-label" for="securityAccountRole">ROLE:</label><select class="form-select" id="securityAccountRole"><option value="security">Keamanan</option><option value="reseller">Reseller</option><option value="partner">Partner</option><option value="admin">ADMIN-DEVELOPER-DITZZ</option></select></div>
                                 <div class="form-group"><label class="form-label" for="securityAccountPassword">PASSWORD BARU:</label><input type="password" class="form-input" id="securityAccountPassword" minlength="12" autocomplete="new-password"><div class="input-hint">Minimal 12 karakter. Wajib saat membuat akun; kosongkan untuk mempertahankan password saat mengubah akun.</div></div>
                                 <div class="form-group"><label class="form-label" for="securityAccountPhoto">FOTO PROFIL:</label><input type="file" class="form-input" id="securityAccountPhoto" accept="image/png,image/gif,image/webp,image/jpeg"><div class="input-hint">PNG, GIF animasi, WEBP, atau JPG. Tidak ada batas ukuran di aplikasi; kapasitas browser/perangkat tetap berlaku.</div><label class="input-hint"><input type="checkbox" id="securityAccountClearPhoto"> Hapus foto profil</label></div>
                             </div>
+                            <fieldset class="security-page-permissions" id="securityPagePermissionsGroup">
+                                <legend>IZIN EDIT / AKSES PER HALAMAN ROLE NON-ADMIN</legend>
+                                <p class="input-hint">Halaman yang tidak dipilih tetap terlihat dalam mode beku. Database & Sync, reset konfigurasi, dan pengelolaan akun hanya tersedia untuk Admin.</p>
+                                <div class="security-page-permission-grid">
+                                    <label><input type="checkbox" data-security-page="site-status"> Site Status</label>
+                                    <label><input type="checkbox" data-security-page="music"> Music Manager</label>
+                                    <label><input type="checkbox" data-security-page="content"> Rules & Directives</label>
+                                    <label><input type="checkbox" data-security-page="products"> Product Catalog</label>
+                                    <label><input type="checkbox" data-security-page="orders"> Transactions</label>
+                                    <label><input type="checkbox" data-security-page="messages"> Transmissions</label>
+                                    <label><input type="checkbox" data-security-page="announcements"> Announcements</label>
+                                    <label><input type="checkbox" data-security-page="visitor-activity"> Visitor Activity</label>
+                                    <label><input type="checkbox" data-security-page="settings"> System Settings</label>
+                                    <label><input type="checkbox" data-security-page="blocked-visitors"> Visitor Terblokir</label>
+                                </div>
+                            </fieldset>
                             <button type="submit" class="action-btn btn-save"><i class="fas fa-user-plus"></i> SIMPAN AKUN</button>
                             <button type="button" class="action-btn" id="cancelSecurityAccountEditBtn">BATAL UBAH</button>
                         </form>
-                        <div class="table-responsive" style="margin-top:18px"><table class="cyber-table"><thead><tr><th>USERNAME</th><th>ROLE</th><th>AKSI</th></tr></thead><tbody id="securityAccountsList"></tbody></table></div>
+                        <div class="table-responsive" style="margin-top:18px"><table class="cyber-table"><thead><tr><th>USERNAME</th><th>ROLE</th><th>IZIN EDIT</th><th>AKSI</th></tr></thead><tbody id="securityAccountsList"></tbody></table></div>
                     </div>
                 </section>
 
@@ -1259,6 +1358,57 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
         <span id="toastText">Perubahan berhasil disimpan!</span>
     </div>
 
+    <div class="profile-modal" id="accountProfileModal" role="dialog" aria-modal="true"
+        aria-labelledby="accountProfileTitle" hidden>
+        <section class="card-panel profile-modal-panel" tabindex="-1">
+            <header class="profile-modal-header">
+                <h2 id="accountProfileTitle"><i class="fas fa-user-gear"></i> PROFIL & KREDENSIAL</h2>
+                <button class="profile-modal-close" id="closeAccountProfileBtn" type="button" aria-label="Tutup profil">
+                    <i class="fas fa-times"></i> TUTUP
+                </button>
+            </header>
+            <p class="input-hint" style="margin-bottom:16px">Role akun: <strong id="accountProfileRole"></strong> — pengubahan role hanya dapat dilakukan Admin.</p>
+            <form id="securityCredentialsForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="securityDisplayName">NAMA TAMPILAN:</label>
+                        <input type="text" class="form-input" id="securityDisplayName" required minlength="1" maxlength="50" autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="securityNewUsername">USERNAME:</label>
+                        <input type="text" class="form-input" id="securityNewUsername" required minlength="3" maxlength="32" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="securityCurrentPassword">PASSWORD SAAT INI:</label>
+                        <input type="password" class="form-input" id="securityCurrentPassword" required autocomplete="current-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="securityNewPassword">PASSWORD BARU (OPSIONAL):</label>
+                        <input type="password" class="form-input" id="securityNewPassword" minlength="12" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="securityConfirmPassword">ULANGI PASSWORD BARU:</label>
+                        <input type="password" class="form-input" id="securityConfirmPassword" minlength="12" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="securityProfilePhoto">FOTO PROFIL (PNG / GIF / WEBP / JPG):</label>
+                        <input type="file" class="form-input" id="securityProfilePhoto" accept="image/png,image/gif,image/webp,image/jpeg">
+                        <div class="input-hint">GIF animasi didukung. File diunggah ke Supabase Storage; batas ukuran mengikuti konfigurasi Storage dan paket project.</div>
+                        <label class="input-hint"><input type="checkbox" id="securityClearProfilePhoto"> Hapus foto profil saat ini</label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">PRATINJAU FOTO:</label>
+                        <div class="profile-photo-preview" id="securityProfilePreview">
+                            <span id="securityProfileInitials">AD</span>
+                            <img id="securityProfilePreviewImage" alt="Pratinjau foto profil" hidden>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="action-btn btn-save"><i class="fas fa-user-edit"></i> SIMPAN PERUBAHAN AKUN</button>
+            </form>
+        </section>
+    </div>
+
     <script src="../site-sounds.js"></script>
     <script>
         /* ===== AUTHENTICATION CHECK ===== */
@@ -1283,8 +1433,13 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             sessionStorage.setItem('ditzz_admin_role', adminRole);
             sessionStorage.setItem('ditzz_admin_id', currentAdminProfile.id);
             document.getElementById('adminUsername').textContent = currentAdminProfile.displayName || username;
-            document.getElementById('adminRoleLabel').textContent = adminRole === 'security' ? 'SECURITY' : 'ADMIN';
+            document.getElementById('adminRoleLabel').textContent = adminRole === 'admin'
+                ? 'ADMIN-DEVELOPER-DITZZ'
+                : adminRole === 'security'
+                    ? 'SECURITY'
+                    : adminRole.toUpperCase();
             document.documentElement.classList.remove('ditzz-admin-auth-pending');
+            applyCpanelPagePermissions();
             window.DitzzData.subscribeAdminUpdates();
             return currentAdminProfile;
         })().catch(error => {
@@ -1296,6 +1451,109 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             window.location.href = 'login.html';
             throw error;
         });
+
+        const securityEditablePageOptions = [
+            ['site-status', 'Site Status'],
+            ['music', 'Music Manager'],
+            ['content', 'Rules & Directives'],
+            ['products', 'Product Catalog'],
+            ['orders', 'Transactions'],
+            ['messages', 'Transmissions'],
+            ['announcements', 'Announcements'],
+            ['visitor-activity', 'Visitor Activity'],
+            ['settings', 'System Settings'],
+            ['blocked-visitors', 'Visitor Terblokir']
+        ];
+
+        function canEditCpanelPage(pageId) {
+            return adminRole === 'admin'
+                || (adminRole !== 'admin'
+                    && Array.isArray(currentAdminProfile && currentAdminProfile.editablePages)
+                    && currentAdminProfile.editablePages.includes(pageId));
+        }
+
+        function setPermissionFrozen(target, frozen, message) {
+            if (!target) return;
+            const overlay = Array.from(target.children)
+                .find(child => child.classList.contains('permission-frozen-overlay'));
+            if (!frozen) {
+                if (overlay) overlay.remove();
+                target.querySelectorAll('[data-permission-frozen-inert="true"]').forEach(child => {
+                    child.removeAttribute('inert');
+                    delete child.dataset.permissionFrozenInert;
+                });
+                target.classList.remove('permission-frozen-target');
+                return;
+            }
+
+            target.classList.add('permission-frozen-target');
+            Array.from(target.children).forEach(child => {
+                if (child.classList.contains('permission-frozen-overlay')) return;
+                if (!child.hasAttribute('inert')) {
+                    child.setAttribute('inert', '');
+                    child.dataset.permissionFrozenInert = 'true';
+                }
+            });
+            if (overlay) return;
+
+            const frozenOverlay = document.createElement('div');
+            frozenOverlay.className = 'permission-frozen-overlay';
+            frozenOverlay.setAttribute('role', 'status');
+            const frozenContent = document.createElement('div');
+            frozenContent.className = 'permission-frozen-content';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-snowflake permission-frozen-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            const title = document.createElement('strong');
+            title.className = 'permission-frozen-title';
+            title.textContent = 'MODE BEKU — HANYA LIHAT';
+            const description = document.createElement('span');
+            description.className = 'permission-frozen-message';
+            description.textContent = message;
+            frozenContent.append(icon, title, description);
+            frozenOverlay.appendChild(frozenContent);
+            target.appendChild(frozenOverlay);
+        }
+
+        function applyCpanelPagePermissions() {
+            const restrictedRole = adminRole !== 'admin';
+            document.querySelectorAll('.sidebar-menu .menu-item[data-tab]').forEach(item => {
+                const pageId = item.dataset.tab;
+                if (['dashboard', 'preview', 'security'].includes(pageId)) return;
+                const pane = document.getElementById(`pane-${pageId}`);
+                if (!pane) return;
+                setPermissionFrozen(
+                    pane,
+                    restrictedRole && !canEditCpanelPage(pageId),
+                    'Admin belum memberikan izin edit untuk halaman ini.'
+                );
+            });
+            setPermissionFrozen(
+                document.getElementById('approvalNamesPanel'),
+                restrictedRole && !canEditCpanelPage('blocked-visitors'),
+                'Izin edit Visitor Terblokir belum diberikan.'
+            );
+            setPermissionFrozen(
+                document.getElementById('blockedNamesPanel'),
+                restrictedRole && !canEditCpanelPage('blocked-visitors'),
+                'Izin edit Visitor Terblokir belum diberikan.'
+            );
+            setPermissionFrozen(
+                document.getElementById('featureStatusPanel'),
+                restrictedRole && !canEditCpanelPage('site-status'),
+                'Izin edit Site Status belum diberikan.'
+            );
+            setPermissionFrozen(
+                document.getElementById('securityAccountsPanel'),
+                restrictedRole,
+                'Pembuatan dan pengelolaan akun hanya tersedia untuk Admin.'
+            );
+            setPermissionFrozen(
+                document.getElementById('settingsDangerZonePanel'),
+                restrictedRole,
+                'Reset konfigurasi dan katalog hanya tersedia untuk Admin.'
+            );
+        }
 
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             if (confirm('Konfirmasi: Akhiri sesi administrator root?')) {
@@ -1337,6 +1595,60 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             featureStatus: { home: 'available', about: 'available', store: 'available', contact: 'available', music: 'available', updates: 'available', events: 'available', gallery: 'available', faq: 'available', community: 'available', guide: 'available' },
             featureStatusMessage: 'Kami sedang menyiapkan pembaruan agar pengalaman Anda lebih nyaman.',
             featurePresentation: {},
+            pageContent: {
+                updates: {
+                    title: 'TRANSMISSION LOG', kicker: '// BERITA & PEMBARUAN',
+                    description: 'Catatan fitur dan perubahan yang membantu Anda menjelajahi DITZZ NEWERA.',
+                    items: [
+                        { title: 'GERBANG VISITOR', body: 'Pengunjung dapat membaca catatan, memilih identitas, lalu memulai sesi website.' },
+                        { title: 'MUSIK PEMBUKA', body: 'Lagu pembuka mengikuti pilihan Admin. Setelah masuk Home, pemutar musik menyediakan pilihan lagu.' },
+                        { title: 'SAMBUTAN DEVELOPER', body: 'Pesan dan pantun sambutan ditampilkan saat Home dibuka dan dapat diubah dari CPanel.' },
+                        { title: 'LAYOUT RESPONSIF', body: 'Halaman publik dirancang agar tetap mudah dijelajahi dari layar HP, tablet, maupun desktop.' }
+                    ]
+                },
+                events: {
+                    title: 'EVENT CENTER', kicker: '// AGENDA & KEGIATAN',
+                    description: 'Pusat informasi kegiatan dan pengumuman komunitas DITZZ NEWERA.',
+                    items: []
+                },
+                gallery: {
+                    title: 'VISUAL ARCHIVE', kicker: '// GALERI VISUAL DIGITAL',
+                    description: 'Jelajahi karya visual DITZZ NEWERA.',
+                    items: [
+                        { title: 'NEON CORE', body: 'Komposisi warna hijau dan cyan yang terinspirasi dari tampilan terminal futuristik.' },
+                        { title: 'BLUE GRID', body: 'Pola cahaya biru dengan lapisan grid untuk nuansa ruang kendali digital.' },
+                        { title: 'NIGHT PULSE', body: 'Gradien ungu dan merah muda dengan cahaya lembut seperti denyut sinyal malam.' }
+                    ]
+                },
+                faq: {
+                    title: 'HELP & FAQ', kicker: '// PUSAT BANTUAN',
+                    description: 'Cari jawaban singkat tentang navigasi, musik, visitor, dan transaksi di website.',
+                    items: [
+                        { title: 'Bagaimana cara menjelajahi halaman lain?', body: 'Gunakan menu di bagian atas halaman atau pintasan Jelajah di Home.' },
+                        { title: 'Bisakah saya mengganti lagu pembuka?', body: 'Lagu pembuka ditentukan Admin. Setelah masuk Home, visitor dapat memilih lagu lain.' },
+                        { title: 'Apakah pilihan musik tersimpan?', body: 'Pilihan musik berlaku selama sesi tab ini dan dibersihkan saat tab ditutup.' },
+                        { title: 'Bagaimana cara menanyakan produk?', body: 'Buka halaman Store untuk melihat katalog, lalu gunakan Contact untuk mengirim pertanyaan.' },
+                        { title: 'Apakah pesan Visitor Lounge dibagikan?', body: 'Tidak. Pesan hanya tersimpan sementara di sesi tab ini.' }
+                    ]
+                },
+                community: {
+                    title: 'VISITOR LOUNGE', kicker: '// PAPAN PESAN SESI',
+                    description: 'Tinggalkan salam singkat selama sesi ini. Pesan tidak dikirim atau dibagikan ke visitor lain.',
+                    notice: 'Privasi: pesan hanya disimpan sementara di sesi tab ini. Jangan masukkan data pribadi atau rahasia.',
+                    items: []
+                },
+                guide: {
+                    title: 'FIELD GUIDE', kicker: '// PANDUAN MENJELAJAH',
+                    description: 'Langkah ringkas untuk menemukan fitur utama dan menggunakan website dengan nyaman.',
+                    items: [
+                        { title: '01 // BACA CATATAN', body: 'Periksa aturan, tujuan website, dan informasi developer di gerbang awal.' },
+                        { title: '02 // PILIH IDENTITAS', body: 'Gunakan nama otomatis atau validasi nama pilihan pada gerbang visitor.' },
+                        { title: '03 // TEMUKAN PRODUK', body: 'Buka Store untuk melihat katalog dan detail yang tersedia.' },
+                        { title: '04 // ATUR MUSIK', body: 'Lagu awal ditetapkan Admin; pilihan lagu tersedia di pemutar Home setelah masuk.' },
+                        { title: '05 // HUBUNGI PENGELOLA', body: 'Gunakan Contact untuk mengirim pertanyaan atau masukan.' }
+                    ]
+                }
+            },
             siteStatus: { mode: 'online', title: '', message: '', endsAt: '', musicId: '', backgroundVideoUrl: '', adminName: '', updatedAt: '' },
             welcomeTitle: 'SELAMAT DATANG DI DITZZ NEWERA',
             welcomeMessage: 'Halo, selamat datang di markas kecil penuh neon ini! Terima kasih sudah mampir dan meluangkan waktu menjelajahi karya yang kami bangun dengan rasa ingin tahu, kreativitas, dan banyak kopi. Semoga setiap sudut website ini terasa seru, mudah digunakan, dan memberi inspirasi baru. Nikmati musiknya, jelajahi fiturnya, dan jangan ragu menyapa lewat halaman Contact kalau punya ide, pertanyaan, atau sekadar ingin bilang halo. Tetap santai, tetap penasaran, dan semoga harimu menyenangkan!',
@@ -1375,29 +1687,6 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                 migrated.push(term.trim());
             });
             return migrated;
-        }
-
-        // Extract YouTube ID & Timestamp helper
-        function extractYouTubeId(url) {
-            if (!url) return 'tGv7CUutzqU';
-            if (url.length === 11 && !url.includes('/') && !url.includes('.')) return url;
-            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-            return match ? match[1] : 'tGv7CUutzqU';
-        }
-
-        function parseYouTubeUrlAdmin(url) {
-            if (!url) return { id: 'tGv7CUutzqU', start: 24 };
-            let id = 'tGv7CUutzqU';
-            let start = 0;
-            const timeMatch = url.match(/[?&](?:t|start)=(\d+)/) || url.match(/[?&]t=(\d+)s/);
-            if (timeMatch) start = parseInt(timeMatch[1]);
-            if (url.length === 11 && !url.includes('/') && !url.includes('.')) {
-                id = url;
-            } else {
-                const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-                if (match) id = match[1];
-            }
-            return { id, start };
         }
 
         // Load config from localStorage or defaults
@@ -1445,6 +1734,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
         function populateFeaturePresentation() {
             const feature = document.getElementById('featurePresentationTarget').value;
             const presentation = (appConfig.featurePresentation || {})[feature] || {};
+            document.getElementById('featureStatusTitle').value = presentation.title || '';
             document.getElementById('featureStatusMessage').value = presentation.message
                 || appConfig.featureStatusMessage
                 || DEFAULT_CONFIG.featureStatusMessage;
@@ -1452,20 +1742,389 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             document.getElementById('featureStatusEndsAt').value = toLocalDateTime(presentation.endsAt);
             document.getElementById('featureStatusMusicId').value = presentation.musicId || '';
             document.getElementById('featureStatusVideoUrl').value = presentation.backgroundVideoUrl || '';
+            document.getElementById('featureStatusAudioUrl').value = presentation.audioUrl || '';
+            document.getElementById('featureStatusBackgroundFile').value = '';
+            document.getElementById('featureStatusAudioFile').value = '';
         }
 
         function captureFeaturePresentation() {
             const feature = document.getElementById('featurePresentationTarget').value;
             const presentation = Object.assign({}, (appConfig.featurePresentation || {})[feature], {
+                title: document.getElementById('featureStatusTitle').value.trim(),
                 message: document.getElementById('featureStatusMessage').value.trim(),
                 repairPlan: document.getElementById('featureRepairPlan').value.trim(),
                 endsAt: fromLocalDateTime(document.getElementById('featureStatusEndsAt').value),
                 musicId: document.getElementById('featureStatusMusicId').value.trim(),
                 backgroundVideoUrl: document.getElementById('featureStatusVideoUrl').value.trim(),
+                audioUrl: document.getElementById('featureStatusAudioUrl').value.trim(),
                 adminName: currentAdminProfile && (currentAdminProfile.displayName || currentAdminProfile.username) || '',
                 updatedAt: new Date().toISOString()
             });
             appConfig.featurePresentation = Object.assign({}, appConfig.featurePresentation, { [feature]: presentation });
+        }
+
+        function createMusicTrackId() {
+            return crypto.randomUUID ? crypto.randomUUID() : `track-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        }
+
+        function mediaTypeFromUrl(value) {
+            let url;
+            try {
+                url = new URL(value);
+            } catch (error) {
+                throw new Error('URL media tidak valid.');
+            }
+            if (url.protocol !== 'https:') throw new Error('Media harus menggunakan URL HTTPS.');
+            const extension = url.pathname.split('.').pop().toLowerCase();
+            if (/^(mp3|m4a|wav|ogg|aac)$/.test(extension)) return 'audio';
+            if (/^(mp4|webm|ogv)$/.test(extension)) return 'video';
+            throw new Error('Pilih file audio MP3/M4A/WAV/OGG/AAC atau video MP4/WEBM/OGG.');
+        }
+
+        function parseMusicYoutubeUrl(value) {
+            const input = String(value || '').trim();
+            if (/^[\w-]{11}$/.test(input)) return { id: input, start: 0 };
+            let url;
+            try {
+                url = new URL(input);
+            } catch (error) {
+                throw new Error('Masukkan URL YouTube atau ID video YouTube yang valid.');
+            }
+            const host = url.hostname.toLowerCase().replace(/^www\./, '');
+            let id = host === 'youtu.be'
+                ? url.pathname.split('/').filter(Boolean)[0]
+                : ['youtube.com', 'm.youtube.com'].includes(host)
+                    ? url.searchParams.get('v') || url.pathname.match(/^\/(?:embed|shorts|live)\/([\w-]{11})/)?.[1]
+                    : '';
+            if (!/^[\w-]{11}$/.test(id || '')) throw new Error('URL YouTube tidak berisi ID video yang valid.');
+            const start = Number(url.searchParams.get('t') || url.searchParams.get('start') || 0);
+            return { id, start: Number.isFinite(start) && start > 0 ? Math.floor(start) : 0 };
+        }
+
+        function toggleIntroSourceFields() {
+            const useFile = document.getElementById('cfgIntroSource').value === 'file';
+            document.getElementById('cfgIntroMusicUrl').closest('.form-group').hidden = useFile;
+            document.getElementById('cfgIntroStartTime').closest('.form-group').hidden = useFile;
+            document.getElementById('cfgIntroMediaFile').closest('.form-group').hidden = !useFile;
+        }
+
+        function createMusicTrackRow(track) {
+            const source = track.source === 'file' || (track.url && track.mediaType !== 'youtube') ? 'file' : 'youtube';
+            const row = document.createElement('div');
+            row.className = 'music-track-row';
+            row.dataset.trackId = track.trackId || track.id || createMusicTrackId();
+            row.dataset.mediaType = track.mediaType || '';
+
+            const nameGroup = document.createElement('div');
+            nameGroup.className = 'form-group';
+            const nameLabel = document.createElement('label');
+            nameLabel.className = 'form-label';
+            nameLabel.textContent = 'NAMA LAGU / VIDEO';
+            const nameInput = document.createElement('input');
+            nameInput.className = 'form-input music-track-name';
+            nameInput.type = 'text';
+            nameInput.maxLength = 120;
+            nameInput.required = true;
+            nameInput.value = track.name || '';
+            nameLabel.appendChild(nameInput);
+            nameGroup.appendChild(nameLabel);
+
+            const sourceGroup = document.createElement('div');
+            sourceGroup.className = 'form-group';
+            const sourceLabel = document.createElement('label');
+            sourceLabel.className = 'form-label';
+            sourceLabel.textContent = 'SUMBER MEDIA';
+            const sourceSelect = document.createElement('select');
+            sourceSelect.className = 'form-select music-track-source';
+            sourceSelect.innerHTML = '<option value="youtube">YouTube</option><option value="file">File Storage</option>';
+            sourceSelect.value = source;
+            sourceLabel.appendChild(sourceSelect);
+            sourceGroup.appendChild(sourceLabel);
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'action-btn music-track-remove';
+            removeButton.innerHTML = '<i class="fas fa-trash"></i> HAPUS';
+            removeButton.addEventListener('click', () => row.remove());
+
+            const youtubeGroup = document.createElement('div');
+            youtubeGroup.className = 'form-group music-track-youtube';
+            const youtubeLabel = document.createElement('label');
+            youtubeLabel.className = 'form-label';
+            youtubeLabel.textContent = 'URL / ID YOUTUBE';
+            const youtubeInput = document.createElement('input');
+            youtubeInput.className = 'form-input music-track-youtube-url';
+            youtubeInput.type = 'url';
+            youtubeInput.placeholder = 'https://youtu.be/XXXXXXXXXXX';
+            youtubeInput.value = source === 'youtube' ? track.youtubeUrl || track.id || '' : '';
+            youtubeLabel.appendChild(youtubeInput);
+            youtubeGroup.appendChild(youtubeLabel);
+
+            const fileGroup = document.createElement('div');
+            fileGroup.className = 'form-group music-track-upload';
+            const fileLabel = document.createElement('label');
+            fileLabel.className = 'form-label';
+            fileLabel.textContent = 'UNGGAH FILE AUDIO / VIDEO';
+            const fileInput = document.createElement('input');
+            fileInput.className = 'form-input music-track-file';
+            fileInput.type = 'file';
+            fileInput.accept = 'audio/mpeg,audio/mp4,audio/wav,audio/ogg,audio/aac,video/mp4,video/webm,video/ogg';
+            const fileUrl = document.createElement('input');
+            fileUrl.className = 'form-input music-track-file-url';
+            fileUrl.type = 'url';
+            fileUrl.readOnly = true;
+            fileUrl.placeholder = 'URL Storage akan muncul setelah unggahan';
+            fileUrl.value = source === 'file' ? track.url || '' : '';
+            fileLabel.append(fileInput, fileUrl);
+            fileGroup.appendChild(fileLabel);
+
+            const updateSource = () => {
+                const isFile = sourceSelect.value === 'file';
+                youtubeGroup.hidden = isFile;
+                fileGroup.hidden = !isFile;
+            };
+            sourceSelect.addEventListener('change', updateSource);
+            fileInput.addEventListener('change', async () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
+                    fileInput.value = '';
+                    showToast('Pilih file audio atau video yang didukung.', 'error');
+                    return;
+                }
+                fileInput.disabled = true;
+                try {
+                    const mediaType = file.type.startsWith('video/') ? 'video' : 'audio';
+                    const url = await window.DitzzData.uploadSiteMedia(file, `music-${row.dataset.trackId}`);
+                    fileUrl.value = url;
+                    row.dataset.mediaType = mediaType;
+                    sourceSelect.value = 'file';
+                    updateSource();
+                    showToast('File playlist berhasil diunggah ke Storage.');
+                } catch (error) {
+                    fileInput.value = '';
+                    showToast(error.message || 'File playlist gagal diunggah.', 'error');
+                } finally {
+                    fileInput.disabled = false;
+                }
+            });
+            row.append(nameGroup, sourceGroup, removeButton, youtubeGroup, fileGroup);
+            updateSource();
+            return row;
+        }
+
+        function renderMusicTracks(tracks) {
+            const list = document.getElementById('musicTrackList');
+            list.replaceChildren();
+            (Array.isArray(tracks) ? tracks : []).forEach(track => {
+                list.appendChild(createMusicTrackRow(track || {}));
+            });
+        }
+
+        function collectMusicTracks() {
+            return Array.from(document.querySelectorAll('#musicTrackList .music-track-row')).map((row, index) => {
+                const name = row.querySelector('.music-track-name').value.trim();
+                if (!name) throw new Error(`Nama lagu/video nomor ${index + 1} wajib diisi.`);
+                const trackId = row.dataset.trackId || createMusicTrackId();
+                if (row.querySelector('.music-track-source').value === 'youtube') {
+                    const { id } = parseMusicYoutubeUrl(row.querySelector('.music-track-youtube-url').value);
+                    return { trackId, name, source: 'youtube', mediaType: 'youtube', id };
+                }
+                const url = row.querySelector('.music-track-file-url').value.trim();
+                if (!url) throw new Error(`Unggah file untuk lagu/video nomor ${index + 1} terlebih dahulu.`);
+                const mediaType = row.dataset.mediaType || mediaTypeFromUrl(url);
+                return { trackId, name, source: 'file', mediaType, url };
+            });
+        }
+
+        const pageContentDraft = {};
+        const pageContentDefaults = DEFAULT_CONFIG.pageContent;
+        let pageContentFieldSequence = 0;
+        let pendingPageMediaUploads = 0;
+        let activePageContentTarget = 'updates';
+
+        function getPageContentDefaults(page) {
+            const fallback = pageContentDefaults[page];
+            const configured = (appConfig.pageContent || {})[page] || {};
+            return {
+                ...fallback,
+                ...configured,
+                items: Array.isArray(configured.items) ? configured.items : fallback.items
+            };
+        }
+
+        function createPageContentField(labelText, className, value, multiline) {
+            const group = document.createElement('div');
+            group.className = 'form-group';
+            const label = document.createElement('label');
+            label.className = 'form-label';
+            label.textContent = labelText;
+            const field = document.createElement(multiline ? 'textarea' : 'input');
+            field.className = `form-${multiline ? 'textarea' : 'input'} ${className}`;
+            if (multiline) field.rows = 3;
+            else field.type = 'text';
+            field.value = typeof value === 'string' ? value : '';
+            field.id = `page-content-field-${++pageContentFieldSequence}`;
+            label.htmlFor = field.id;
+            group.append(label, field);
+            return group;
+        }
+
+        function createPageContentItemRow(page, item = {}) {
+            const row = document.createElement('div');
+            row.className = 'page-content-item';
+            const grid = document.createElement('div');
+            grid.className = 'page-content-item-grid';
+            const isFaq = page === 'faq';
+            grid.append(
+                createPageContentField(isFaq ? 'PERTANYAAN' : 'JUDUL', 'page-item-title', item.title || '', false),
+                ...(page === 'updates' || page === 'events'
+                    ? [createPageContentField('TANGGAL / WAKTU (OPSIONAL)', 'page-item-date', item.date || '', false)]
+                    : [])
+            );
+            grid.appendChild(createPageContentField(isFaq ? 'JAWABAN' : 'DESKRIPSI / ISI', 'page-item-body', item.body || '', true));
+            row.appendChild(grid);
+
+            if (page !== 'faq') {
+                const mediaGroup = document.createElement('div');
+                mediaGroup.className = 'form-group';
+                const mediaLabel = document.createElement('label');
+                mediaLabel.className = 'form-label';
+                mediaLabel.textContent = 'FOTO / ANIMASI / VIDEO (OPSIONAL)';
+                const mediaFile = document.createElement('input');
+                mediaFile.className = 'form-input page-item-file';
+                mediaFile.type = 'file';
+                mediaFile.accept = 'image/gif,image/apng,image/webp,image/png,image/jpeg,video/mp4,video/webm,video/ogg';
+                const mediaUrl = document.createElement('input');
+                mediaUrl.className = 'form-input page-item-media-url';
+                mediaUrl.type = 'url';
+                mediaUrl.placeholder = 'URL HTTPS media, atau pilih file dari perangkat';
+                mediaUrl.value = item.mediaUrl || '';
+                row.dataset.mediaType = item.mediaType || '';
+                mediaFile.addEventListener('change', async () => {
+                    const file = mediaFile.files && mediaFile.files[0];
+                    if (!file) return;
+                    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+                        mediaFile.value = '';
+                        showToast('Pilih file foto, animasi, atau video yang didukung.', 'error');
+                        return;
+                    }
+                    mediaFile.disabled = true;
+                    pendingPageMediaUploads += 1;
+                    document.getElementById('pageContentTarget').disabled = true;
+                    try {
+                        const url = await window.DitzzData.uploadSiteMedia(file, `page-${page}`);
+                        mediaUrl.value = url;
+                        row.dataset.mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+                        showToast('Media berhasil diunggah ke Supabase Storage. Simpan konten untuk memublikasikannya.');
+                    } catch (error) {
+                        mediaFile.value = '';
+                        showToast(error.message || 'Media gagal diunggah.', 'error');
+                    } finally {
+                        mediaFile.disabled = false;
+                        pendingPageMediaUploads -= 1;
+                        document.getElementById('pageContentTarget').disabled = pendingPageMediaUploads > 0;
+                    }
+                });
+                mediaGroup.append(mediaLabel, mediaFile, mediaUrl);
+                row.appendChild(mediaGroup);
+            }
+
+            const removeButton = document.createElement('button');
+            removeButton.className = 'action-btn page-content-remove';
+            removeButton.type = 'button';
+            removeButton.textContent = 'HAPUS KONTEN';
+            removeButton.addEventListener('click', () => row.remove());
+            row.appendChild(removeButton);
+            return row;
+        }
+
+        function capturePageContentDraft(page) {
+            const content = {
+                title: document.getElementById('pageContentTitle').value.trim(),
+                kicker: document.getElementById('pageContentKicker').value.trim(),
+                description: document.getElementById('pageContentDescription').value.trim(),
+                notice: document.getElementById('pageContentNotice').value.trim(),
+                items: []
+            };
+            document.querySelectorAll('#pageContentItems .page-content-item').forEach(row => {
+                const item = {
+                    title: row.querySelector('.page-item-title').value.trim(),
+                    body: row.querySelector('.page-item-body').value.trim()
+                };
+                const date = row.querySelector('.page-item-date');
+                const mediaUrl = row.querySelector('.page-item-media-url');
+                if (date) item.date = date.value.trim();
+                if (mediaUrl) {
+                    item.mediaUrl = mediaUrl.value.trim();
+                    item.mediaType = row.dataset.mediaType || '';
+                }
+                content.items.push(item);
+            });
+            pageContentDraft[page] = content;
+            return content;
+        }
+
+        function renderPageContentEditor(page) {
+            const data = pageContentDraft[page] || getPageContentDefaults(page);
+            document.getElementById('pageContentTitle').value = data.title || '';
+            document.getElementById('pageContentKicker').value = data.kicker || '';
+            document.getElementById('pageContentDescription').value = data.description || '';
+            document.getElementById('pageContentNotice').value = data.notice || '';
+            const isCommunity = page === 'community';
+            document.getElementById('pageContentNoticeGroup').hidden = !isCommunity;
+            document.getElementById('pageContentItems').hidden = isCommunity;
+            document.getElementById('addPageContentItemBtn').hidden = isCommunity;
+            const list = document.getElementById('pageContentItems');
+            list.replaceChildren();
+            (Array.isArray(data.items) ? data.items : []).forEach(item => {
+                list.appendChild(createPageContentItemRow(page, item || {}));
+            });
+        }
+
+        function collectPageContent() {
+            if (pendingPageMediaUploads > 0) {
+                throw new Error('Tunggu sampai unggahan media selesai sebelum menyimpan konten.');
+            }
+            const currentPage = document.getElementById('pageContentTarget').value;
+            capturePageContentDraft(currentPage);
+            const result = {};
+            for (const page of Object.keys(pageContentDefaults)) {
+                const content = pageContentDraft[page] || getPageContentDefaults(page);
+                const cleaned = {
+                    title: String(content.title || '').trim(),
+                    kicker: String(content.kicker || '').trim(),
+                    description: String(content.description || '').trim(),
+                    notice: String(content.notice || '').trim(),
+                    items: []
+                };
+                for (const [index, item] of content.items.entries()) {
+                    if (!item.title || !item.body) {
+                        throw new Error(`Judul dan isi konten nomor ${index + 1} pada ${page} wajib diisi.`);
+                    }
+                    const cleanItem = {
+                        title: String(item.title).trim(),
+                        body: String(item.body).trim()
+                    };
+                    if (item.date) cleanItem.date = String(item.date).trim();
+                    if (item.mediaUrl) {
+                        let mediaUrl;
+                        try {
+                            mediaUrl = new URL(item.mediaUrl);
+                        } catch (error) {
+                            throw new Error(`URL media nomor ${index + 1} pada ${page} tidak valid.`);
+                        }
+                        if (mediaUrl.protocol !== 'https:' || !/\.(gif|apng|webp|png|jpe?g|mp4|webm|ogg|ogv)$/i.test(mediaUrl.pathname)) {
+                            throw new Error(`Media nomor ${index + 1} pada ${page} harus berupa URL HTTPS ke foto, animasi, atau video.`);
+                        }
+                        cleanItem.mediaUrl = mediaUrl.href;
+                        cleanItem.mediaType = item.mediaType || (/\.((mp4|webm|ogg|ogv))$/i.test(mediaUrl.pathname) ? 'video' : 'image');
+                    }
+                    cleaned.items.push(cleanItem);
+                }
+                result[page] = cleaned;
+            }
+            return result;
         }
 
         // Populate Form Fields
@@ -1498,24 +2157,18 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             document.getElementById('siteModeStatus').textContent = String((appConfig.siteStatus || {}).mode || 'online').toUpperCase();
             populateFeaturePresentation();
 
-            document.getElementById('cfgIntroMusicUrl').value = appConfig.introMusicUrl;
+            const introSource = appConfig.introMusicSource || 'youtube';
+            document.getElementById('cfgIntroSource').value = introSource;
+            document.getElementById('cfgIntroMusicUrl').value = introSource === 'youtube' ? appConfig.introMusicUrl || '' : '';
+            document.getElementById('cfgIntroMediaUrl').value = appConfig.introMediaUrl
+                || (introSource === 'file' ? appConfig.introMusicUrl || '' : '');
+            document.getElementById('cfgIntroMediaUrl').dataset.mediaType = appConfig.introMediaType || '';
             document.getElementById('cfgIntroStartTime').value = appConfig.introStartTime;
             document.getElementById('cfgIntroVolume').value = appConfig.introVolume;
             document.getElementById('cfgIntroTitle').value = appConfig.introTitle;
             document.getElementById('cfgWebsiteMusicEnabled').value = appConfig.websiteMusicEnabled === false ? 'false' : 'true';
-
-            if (appConfig.tracks && appConfig.tracks[0]) {
-                document.getElementById('cfgTrack1Name').value = appConfig.tracks[0].name;
-                document.getElementById('cfgTrack1Id').value = appConfig.tracks[0].id;
-            }
-            if (appConfig.tracks && appConfig.tracks[1]) {
-                document.getElementById('cfgTrack2Name').value = appConfig.tracks[1].name;
-                document.getElementById('cfgTrack2Id').value = appConfig.tracks[1].id;
-            }
-            if (appConfig.tracks && appConfig.tracks[2]) {
-                document.getElementById('cfgTrack3Name').value = appConfig.tracks[2].name;
-                document.getElementById('cfgTrack3Id').value = appConfig.tracks[2].id;
-            }
+            toggleIntroSourceFields();
+            renderMusicTracks(appConfig.tracks);
 
             document.getElementById('cfgRules').value = appConfig.rules;
             document.getElementById('cfgPurpose').value = appConfig.purpose;
@@ -1528,14 +2181,68 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
 
             document.getElementById('cfgAgreementText').value = appConfig.agreementText;
             document.getElementById('cfgEnterBtnText').value = appConfig.enterBtnText;
+            renderPageContentEditor(document.getElementById('pageContentTarget').value);
         }
         populateFields();
+        document.getElementById('cfgIntroSource').addEventListener('change', toggleIntroSourceFields);
+        activePageContentTarget = document.getElementById('pageContentTarget').value;
+        document.getElementById('pageContentTarget').addEventListener('change', event => {
+            capturePageContentDraft(activePageContentTarget);
+            activePageContentTarget = event.target.value;
+            renderPageContentEditor(event.target.value);
+        });
+        document.getElementById('addPageContentItemBtn').addEventListener('click', () => {
+            const page = document.getElementById('pageContentTarget').value;
+            document.getElementById('pageContentItems').appendChild(createPageContentItemRow(page));
+        });
+        document.getElementById('cfgIntroMediaFile').addEventListener('change', async event => {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
+                event.target.value = '';
+                showToast('File intro harus berupa audio atau video.', 'error');
+                return;
+            }
+            event.target.disabled = true;
+            try {
+                const url = await window.DitzzData.uploadSiteMedia(file, 'intro-music');
+                const mediaType = file.type.startsWith('video/') ? 'video' : 'audio';
+                document.getElementById('cfgIntroMediaUrl').dataset.mediaType = mediaType;
+                document.getElementById('cfgIntroMediaUrl').value = url;
+                document.getElementById('cfgIntroSource').value = 'file';
+                toggleIntroSourceFields();
+                showToast('File musik intro berhasil diunggah. Klik DEPLOY CHANGES untuk menerapkan.');
+            } catch (error) {
+                event.target.value = '';
+                showToast(error.message || 'File musik intro gagal diunggah.', 'error');
+            } finally {
+                event.target.disabled = false;
+            }
+        });
+        document.getElementById('addMusicTrackBtn').addEventListener('click', () => {
+            document.getElementById('musicTrackList').appendChild(createMusicTrackRow({}));
+        });
 
         // Save Config
         async function saveConfig() {
+            const introSource = document.getElementById('cfgIntroSource').value;
             const rawUrl = document.getElementById('cfgIntroMusicUrl').value.trim();
-            const parsedIntro = parseYouTubeUrlAdmin(rawUrl);
-            const ytId = parsedIntro.id;
+            const mediaUrl = document.getElementById('cfgIntroMediaUrl').value.trim();
+            let parsedIntro = { id: '', start: 0 };
+            let introMediaType = 'youtube';
+            let websiteTracks;
+            let pageContent;
+            try {
+                if (introSource === 'youtube') parsedIntro = parseMusicYoutubeUrl(rawUrl);
+                else {
+                    introMediaType = document.getElementById('cfgIntroMediaUrl').dataset.mediaType || mediaTypeFromUrl(mediaUrl);
+                }
+                websiteTracks = collectMusicTracks();
+                pageContent = collectPageContent();
+            } catch (error) {
+                showToast(error.message || 'Periksa pengaturan playlist musik.', 'error');
+                return;
+            }
 
             appConfig.siteTitle = document.getElementById('cfgSiteTitle').value.trim();
             appConfig.siteTagline = document.getElementById('cfgSiteTagline').value.trim();
@@ -1560,24 +2267,23 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             };
             appConfig.featureStatusMessage = document.getElementById('featureStatusMessage').value.trim();
 
-            let startSec = parseInt(document.getElementById('cfgIntroStartTime').value);
-            if (isNaN(startSec) || (startSec === 0 && parsedIntro.start > 0)) {
+            let startSec = parseInt(document.getElementById('cfgIntroStartTime').value, 10);
+            if (!Number.isFinite(startSec) || (startSec === 0 && parsedIntro.start > 0)) {
                 startSec = parsedIntro.start;
                 document.getElementById('cfgIntroStartTime').value = startSec;
             }
 
-            appConfig.introMusicUrl = rawUrl;
-            appConfig.introMusicId = ytId;
-            appConfig.introStartTime = startSec || 0;
+            appConfig.introMusicSource = introSource;
+            appConfig.introMusicUrl = introSource === 'file' ? mediaUrl : rawUrl;
+            appConfig.introMusicId = introSource === 'youtube' ? parsedIntro.id : '';
+            appConfig.introMediaUrl = introSource === 'file' ? mediaUrl : '';
+            appConfig.introMediaType = introSource === 'file' ? introMediaType : 'youtube';
+            appConfig.introStartTime = introSource === 'youtube' ? startSec || 0 : 0;
             appConfig.introVolume = parseInt(document.getElementById('cfgIntroVolume').value) || 100;
             appConfig.introTitle = document.getElementById('cfgIntroTitle').value.trim();
             appConfig.websiteMusicEnabled = document.getElementById('cfgWebsiteMusicEnabled').value === 'true';
-
-            appConfig.tracks = [
-                { name: document.getElementById('cfgTrack1Name').value.trim(), id: extractYouTubeId(document.getElementById('cfgTrack1Id').value.trim()) },
-                { name: document.getElementById('cfgTrack2Name').value.trim(), id: extractYouTubeId(document.getElementById('cfgTrack2Id').value.trim()) },
-                { name: document.getElementById('cfgTrack3Name').value.trim(), id: extractYouTubeId(document.getElementById('cfgTrack3Id').value.trim()) }
-            ];
+            appConfig.tracks = websiteTracks;
+            appConfig.pageContent = pageContent;
 
             appConfig.rules = document.getElementById('cfgRules').value.trim();
             appConfig.purpose = document.getElementById('cfgPurpose').value.trim();
@@ -1607,6 +2313,58 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
         document.getElementById('globalSaveBtn').addEventListener('click', saveConfig);
 
         const credentialForm = document.getElementById('securityCredentialsForm');
+        const accountProfileModal = document.getElementById('accountProfileModal');
+        const openAccountProfileBtn = document.getElementById('openAccountProfileBtn');
+
+        async function openAccountProfile() {
+            try {
+                await adminSessionReady;
+                await adminUsersReady;
+                const account = adminUsers.find(user => user.id === currentAdminProfile.id);
+                if (!account) throw new Error('Profil akun belum dapat dimuat. Segarkan halaman lalu coba lagi.');
+                populateCurrentAdminProfile();
+                document.getElementById('accountProfileRole').textContent = ({
+                    admin: 'ADMIN-DEVELOPER-DITZZ',
+                    security: 'Keamanan',
+                    reseller: 'Reseller',
+                    partner: 'Partner'
+                })[account.role] || account.role;
+                accountProfileModal.hidden = false;
+                document.getElementById('securityDisplayName').focus();
+            } catch (error) {
+                showToast(profileSaveErrorMessage(error, 'Profil akun tidak dapat dibuka.'), 'error');
+            }
+        }
+
+        function closeAccountProfile() {
+            accountProfileModal.hidden = true;
+            openAccountProfileBtn.focus();
+        }
+
+        openAccountProfileBtn.addEventListener('click', openAccountProfile);
+        document.getElementById('closeAccountProfileBtn').addEventListener('click', closeAccountProfile);
+        accountProfileModal.addEventListener('click', event => {
+            if (event.target === accountProfileModal) closeAccountProfile();
+        });
+        accountProfileModal.addEventListener('keydown', event => {
+            if (event.key !== 'Tab') return;
+            const focusable = Array.from(accountProfileModal.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )).filter(element => !element.hidden);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !accountProfileModal.hidden) closeAccountProfile();
+        });
 
         function profileInitials(name) {
             return String(name || 'Admin').trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
@@ -1675,7 +2433,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
         }
 
         function populateCurrentAdminProfile() {
-            const account = adminUsers.find(user => user.username === sessionStorage.getItem('ditzz_admin_user'));
+            const account = adminUsers.find(user => user.id === currentAdminProfile.id);
             if (!account) return;
             document.getElementById('securityDisplayName').value = account.displayName || account.username;
             document.getElementById('securityNewUsername').value = account.username;
@@ -1732,6 +2490,18 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
         document.addEventListener('ditzz:admin-users-changed', async () => {
             try {
                 adminUsers = await window.DitzzData.listAdminUsers();
+                const refreshedProfile = adminUsers.find(account => account.id === currentAdminProfile.id);
+                if (refreshedProfile) {
+                    currentAdminProfile = refreshedProfile;
+                    adminRole = refreshedProfile.role;
+                    sessionStorage.setItem('ditzz_admin_role', adminRole);
+                    document.getElementById('adminRoleLabel').textContent = adminRole === 'admin'
+                        ? 'ADMIN-DEVELOPER-DITZZ'
+                        : adminRole === 'security'
+                            ? 'SECURITY'
+                            : adminRole.toUpperCase();
+                    applyCpanelPagePermissions();
+                }
                 renderAdminUsers();
                 populateCurrentAdminProfile();
             } catch (error) {
@@ -1761,10 +2531,25 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                 usernameHint.textContent = account.username;
                 usernameCell.appendChild(usernameHint);
                 const roleCell = document.createElement('td');
-                roleCell.textContent = account.role === 'security' ? 'Keamanan' : 'Admin';
+                roleCell.textContent = ({
+                    admin: 'ADMIN-DEVELOPER-DITZZ',
+                    security: 'Keamanan',
+                    reseller: 'Reseller',
+                    partner: 'Partner'
+                })[account.role] || account.role;
+                const permissionsCell = document.createElement('td');
+                const selectedPages = Array.isArray(account.editablePages) ? account.editablePages : [];
+                permissionsCell.textContent = account.role === 'admin'
+                    ? 'Semua halaman'
+                    : selectedPages.length
+                        ? selectedPages.map(page => {
+                            const pageOption = securityEditablePageOptions.find(option => option[0] === page);
+                            return pageOption ? pageOption[1] : page;
+                        }).join(', ')
+                        : 'Tidak ada izin edit';
                 const actionsCell = document.createElement('td');
                 if (account.username === username) {
-                    actionsCell.textContent = 'Kelola kredensial melalui formulir di atas';
+                    actionsCell.textContent = 'Kelola melalui tombol profil di bagian bawah sidebar';
                 } else {
                     const editButton = document.createElement('button');
                     editButton.type = 'button';
@@ -1775,6 +2560,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         document.getElementById('securityAccountUsername').value = account.username;
                         document.getElementById('securityAccountDisplayName').value = account.displayName || account.username;
                         document.getElementById('securityAccountRole').value = account.role;
+                        setSecurityEditablePages(account.editablePages);
                         document.getElementById('securityAccountPassword').value = '';
                         document.getElementById('securityAccountPassword').required = false;
                         document.getElementById('securityAccountPhoto').value = '';
@@ -1802,10 +2588,26 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                     });
                     actionsCell.append(editButton, deleteButton);
                 }
-                row.append(usernameCell, roleCell, actionsCell);
+                row.append(usernameCell, roleCell, permissionsCell, actionsCell);
                 list.appendChild(row);
             });
         }
+
+        function setSecurityEditablePages(pages) {
+            const selectedPages = new Set(Array.isArray(pages) ? pages : []);
+            document.querySelectorAll('[data-security-page]').forEach(input => {
+                input.checked = selectedPages.has(input.dataset.securityPage);
+            });
+            document.getElementById('securityPagePermissionsGroup').hidden =
+                document.getElementById('securityAccountRole').value === 'admin';
+        }
+
+        document.getElementById('securityAccountRole').addEventListener('change', event => {
+            const isRestrictedRole = event.target.value !== 'admin';
+            document.getElementById('securityPagePermissionsGroup').hidden = !isRestrictedRole;
+            if (!isRestrictedRole) setSecurityEditablePages([]);
+        });
+        setSecurityEditablePages([]);
 
         const securityAccountForm = document.getElementById('securityAccountForm');
         securityAccountForm.addEventListener('submit', async event => {
@@ -1815,6 +2617,10 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             const newUsername = document.getElementById('securityAccountUsername').value.trim();
             const displayName = document.getElementById('securityAccountDisplayName').value.trim() || newUsername;
             const role = document.getElementById('securityAccountRole').value;
+            const editablePages = role !== 'admin'
+                ? Array.from(document.querySelectorAll('[data-security-page]:checked'))
+                    .map(input => input.dataset.securityPage)
+                : [];
             const password = document.getElementById('securityAccountPassword').value;
             const photoFile = document.getElementById('securityAccountPhoto').files[0];
             const clearPhoto = document.getElementById('securityAccountClearPhoto').checked;
@@ -1861,6 +2667,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         username: newUsername,
                         displayName,
                         role,
+                        editablePages,
                         password,
                         avatarUrl: photoUrl
                     })
@@ -1868,6 +2675,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         username: newUsername,
                         displayName,
                         role,
+                        editablePages,
                         password,
                         avatarUrl: photoUrl
                     });
@@ -1880,6 +2688,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                 document.getElementById('securityAccountPassword').required = true;
                 document.getElementById('securityAccountPhoto').value = '';
                 document.getElementById('securityAccountClearPhoto').checked = false;
+                setSecurityEditablePages([]);
                 renderAdminUsers();
                 showToast(editingIndex >= 0 ? 'Akun berhasil diperbarui.' : 'Akun baru berhasil dibuat.');
             } catch (error) {
@@ -1893,6 +2702,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             document.getElementById('securityAccountPassword').required = true;
             document.getElementById('securityAccountPhoto').value = '';
             document.getElementById('securityAccountClearPhoto').checked = false;
+            setSecurityEditablePages([]);
         });
 
         credentialForm.addEventListener('submit', async event => {
@@ -1961,6 +2771,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                 document.getElementById('securityClearProfilePhoto').checked = false;
                 renderAdminUsers();
                 showToast('Profil akun berhasil diperbarui.');
+                closeAccountProfile();
             } catch (error) {
                 showToast(profileSaveErrorMessage(error, 'Kredensial tidak dapat disimpan.'));
             }
@@ -1990,13 +2801,30 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             if (videoUrl) {
                 try {
                     const parsedVideoUrl = new URL(videoUrl);
-                    if (parsedVideoUrl.protocol !== 'https:' || !/\.(mp4|webm|ogg)$/i.test(parsedVideoUrl.pathname)) {
-                        throw new Error('Gunakan URL HTTPS langsung ke file MP4, WEBM, atau OGG.');
+                    if (parsedVideoUrl.protocol !== 'https:' || !/\.(mp4|webm|ogg|ogv|gif|apng|webp|png|jpe?g)$/i.test(parsedVideoUrl.pathname)) {
+                        throw new Error('Gunakan URL HTTPS ke MP4, WEBM, OGG, GIF, APNG, WEBP, PNG, atau JPG.');
                     }
                 } catch (error) {
                     showToast(error.message || 'URL video tidak valid.', 'error');
                     return;
                 }
+            }
+            const audioUrl = document.getElementById('featureStatusAudioUrl').value.trim();
+            if (audioUrl) {
+                try {
+                    const parsedAudioUrl = new URL(audioUrl);
+                    if (parsedAudioUrl.protocol !== 'https:' || !/\.(mp3|m4a|wav|ogg|aac)$/i.test(parsedAudioUrl.pathname)) {
+                        throw new Error('Gunakan URL HTTPS langsung ke file audio MP3, M4A, WAV, OGG, atau AAC.');
+                    }
+                } catch (error) {
+                    showToast(error.message || 'URL audio tidak valid.', 'error');
+                    return;
+                }
+            }
+            const selectedEndsAt = fromLocalDateTime(document.getElementById('featureStatusEndsAt').value);
+            if (selectedEndsAt && Date.parse(selectedEndsAt) <= Date.now()) {
+                showToast('Waktu cooldown perkiraan fitur harus berada di masa depan.', 'error');
+                return;
             }
             captureFeaturePresentation();
             try {
@@ -2008,6 +2836,42 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
         });
 
         document.getElementById('featurePresentationTarget').addEventListener('change', populateFeaturePresentation);
+
+        async function uploadFeatureAsset(fileInputId, urlInputId, label) {
+            const input = document.getElementById(fileInputId);
+            const file = input.files[0];
+            if (!file) return;
+            const feature = document.getElementById('featurePresentationTarget').value;
+            const otherInput = document.getElementById(fileInputId === 'featureStatusBackgroundFile'
+                ? 'featureStatusAudioFile'
+                : 'featureStatusBackgroundFile');
+            const featureSelect = document.getElementById('featurePresentationTarget');
+            const saveButton = document.getElementById('saveFeatureStatusBtn');
+            input.disabled = true;
+            otherInput.disabled = true;
+            featureSelect.disabled = true;
+            saveButton.disabled = true;
+            try {
+                const url = await window.DitzzData.uploadSiteMedia(file, `${feature}-${label}`);
+                document.getElementById(urlInputId).value = url;
+                showToast(`${label === 'background' ? 'Media latar' : 'Audio pemeliharaan'} berhasil diunggah.`);
+            } catch (error) {
+                input.value = '';
+                showToast(error.message || 'Media tidak dapat diunggah ke Supabase Storage.', 'error');
+            } finally {
+                input.disabled = false;
+                otherInput.disabled = false;
+                featureSelect.disabled = false;
+                saveButton.disabled = false;
+            }
+        }
+
+        document.getElementById('featureStatusBackgroundFile').addEventListener('change', () => {
+            uploadFeatureAsset('featureStatusBackgroundFile', 'featureStatusVideoUrl', 'background');
+        });
+        document.getElementById('featureStatusAudioFile').addEventListener('change', () => {
+            uploadFeatureAsset('featureStatusAudioFile', 'featureStatusAudioUrl', 'audio');
+        });
 
         document.getElementById('saveSiteStatusBtn').addEventListener('click', async () => {
             const mode = document.getElementById('siteMode').value;
@@ -2069,6 +2933,9 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         event.visitor_name || 'Visitor tanpa nama',
                         event.ip_masked || 'Tidak tersedia',
                         `${event.page || '-'} / ${event.event_type || '-'}`,
+                        event.event_type === 'music_selection'
+                            ? `${event.music_track_name || 'Lagu'} (${event.music_source || 'sumber tidak diketahui'}${event.music_media_type ? `, ${event.music_media_type}` : ''})`
+                            : '-',
                         event.fullscreen_supported ? 'YA' : 'TIDAK',
                         event.fullscreen_active ? 'YA' : 'TIDAK',
                         event.rule_violation ? `MELANGGAR — ${event.violation_reason || 'Aturan nama'}` : 'Tidak'
@@ -2096,6 +2963,13 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                     const row = document.createElement('tr');
                     const message = document.createElement('td');
                     message.textContent = announcement.message;
+                    const targets = document.createElement('td');
+                    targets.textContent = (announcement.target_roles || []).map(role => ({
+                        visitor: 'Visitor',
+                        security: 'Keamanan',
+                        reseller: 'Reseller',
+                        partner: 'Partner'
+                    })[role] || role).join(', ');
                     const admin = document.createElement('td');
                     admin.textContent = announcement.created_by_name || 'Admin';
                     const expiry = document.createElement('td');
@@ -2114,7 +2988,7 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                         }
                     });
                     actions.appendChild(remove);
-                    row.append(message, admin, expiry, actions);
+                    row.append(message, targets, admin, expiry, actions);
                     list.appendChild(row);
                 }
                 document.getElementById('announcementListEmpty').hidden = announcements.length > 0;
@@ -2149,6 +3023,63 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
             }
         }
 
+        async function showRoleAnnouncementPopup() {
+            await adminSessionReady;
+            if (!currentAdminProfile || currentAdminProfile.role === 'admin') return;
+            const announcements = await window.DitzzData.listRoleAnnouncements(currentAdminProfile.role);
+            const announcement = announcements.find(item =>
+                Date.parse(item.expires_at) > Date.now()
+                && !sessionStorage.getItem(`ditzz_role_announcement_seen_${item.id}`)
+            );
+            if (!announcement) return;
+            sessionStorage.setItem(`ditzz_role_announcement_seen_${announcement.id}`, 'true');
+            if (!document.getElementById('ditzzRoleAnnouncementStyle')) {
+                const style = document.createElement('style');
+                style.id = 'ditzzRoleAnnouncementStyle';
+                style.textContent = '@keyframes ditzzRoleNoticeIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}';
+                document.head.appendChild(style);
+            }
+
+            const overlay = document.createElement('div');
+            overlay.setAttribute('role', 'alertdialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:200000;display:grid;place-items:center;padding:20px;background:rgba(3,8,12,.82);backdrop-filter:blur(8px)';
+            const panel = document.createElement('section');
+            panel.style.cssText = 'position:relative;width:min(560px,100%);padding:30px;border:1px solid #00e5ff;border-radius:16px;background:#0c1722;color:#edfaff;box-shadow:0 0 42px rgba(0,229,255,.24);animation:ditzzRoleNoticeIn .35s ease-out both';
+            const heading = document.createElement('h2');
+            heading.textContent = 'PESAN ADMIN UNTUK ROLE ' + currentAdminProfile.role.toUpperCase();
+            heading.style.cssText = 'margin:0 35px 18px 0;color:#00e5ff;font:700 1rem Orbitron,sans-serif';
+            const message = document.createElement('p');
+            message.textContent = announcement.message;
+            message.style.cssText = 'line-height:1.75;white-space:pre-wrap';
+            const author = document.createElement('p');
+            author.textContent = `Dari ${announcement.created_by_name || 'Admin'}`;
+            author.style.cssText = 'color:#a7bac8;font-size:.85rem';
+            const countdown = document.createElement('p');
+            countdown.setAttribute('aria-live', 'polite');
+            countdown.style.cssText = 'color:#ffd36a;font:600 .78rem "Share Tech Mono",monospace';
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.textContent = 'TUTUP';
+            close.style.cssText = 'padding:10px 18px;border:1px solid #00e5ff;border-radius:8px;background:#102c38;color:#fff;cursor:pointer;font-weight:700';
+            const closePopup = () => {
+                window.clearInterval(timer);
+                overlay.remove();
+            };
+            close.addEventListener('click', closePopup);
+            panel.append(heading, message, author, countdown, close);
+            overlay.appendChild(panel);
+            document.body.appendChild(overlay);
+            const updateCountdown = () => {
+                const seconds = Math.max(0, Math.ceil((Date.parse(announcement.expires_at) - Date.now()) / 1000));
+                countdown.textContent = `PENGUMUMAN BERAKHIR DALAM ${seconds} DETIK`;
+                if (!seconds) closePopup();
+            };
+            const timer = window.setInterval(updateCountdown, 1000);
+            updateCountdown();
+            close.focus();
+        }
+
         document.getElementById('announcementForm').addEventListener('submit', async event => {
             event.preventDefault();
             try {
@@ -2156,7 +3087,8 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
                 await window.DitzzData.publishAnnouncement(
                     document.getElementById('announcementMessage').value,
                     document.getElementById('announcementDuration').value,
-                    currentAdminProfile
+                    currentAdminProfile,
+                    Array.from(document.querySelectorAll('[name="announcementTarget"]:checked'), input => input.value)
                 );
                 document.getElementById('announcementMessage').value = '';
                 showToast('Pengumuman berhasil diterbitkan.');
@@ -2169,6 +3101,12 @@ DITZZ adalah pelopor arsitektur digital dan inovator kreatif di balik seluruh si
         document.getElementById('refreshVisitorActivityBtn').addEventListener('click', loadVisitorActivity);
         document.addEventListener('ditzz:announcements-changed', () => {
             if (document.getElementById('pane-announcements').classList.contains('active')) loadAnnouncements();
+            showRoleAnnouncementPopup().catch(error => {
+                console.error('Role announcement popup could not be loaded.', error);
+            });
+        });
+        adminSessionReady.then(showRoleAnnouncementPopup).catch(error => {
+            console.error('Role announcement popup could not be initialized.', error);
         });
         document.addEventListener('ditzz:announcement-responses-changed', () => {
             if (document.getElementById('pane-announcements').classList.contains('active')) loadAnnouncementResponses();

@@ -434,6 +434,7 @@
             <div class="audio-status-sub" id="hudStatus">FREQUENCY 100% // ONLINE</div>
         </div>
         <button class="audio-ctrl-btn" id="hudPlayBtn" title="Play / Pause"><i class="fas fa-pause"></i></button>
+        <button class="audio-ctrl-btn" id="musicModeBtn" type="button" title="Mode musik: ulangi lagu ini" aria-label="Mode musik: ulangi lagu ini"><i class="fas fa-redo"></i></button>
         <button class="audio-ctrl-btn" id="hudSearchBtn" title="Cari / Input Lagu YouTube"><i class="fab fa-youtube" style="color:var(--accent-red);"></i></button>
         <button class="audio-ctrl-btn" id="hudSwitchBtn" title="Pilih Channel Preset"><i class="fas fa-list"></i></button>
 
@@ -563,14 +564,14 @@
             'fuck', 'shit', 'bitch', 'asshole', 'dick', 'pussy', 'whore', 'slut', 'porn', 'bokep',
             'admin', 'administrator', 'root', 'owner', 'ditzz', 'system', 'moderator'
         ];
-        let defaultVisitorUsername = localStorage.getItem('ditzz_visitor_default_name');
+        let defaultVisitorUsername = sessionStorage.getItem('ditzz_visitor_default_name');
         if (!defaultVisitorUsername) {
             defaultVisitorUsername = `VISITOR-${Math.floor(1000 + Math.random() * 9000)}`;
-            localStorage.setItem('ditzz_visitor_default_name', defaultVisitorUsername);
+            sessionStorage.setItem('ditzz_visitor_default_name', defaultVisitorUsername);
         }
-        const savedVisitorMode = localStorage.getItem('ditzz_visitor_mode');
+        const savedVisitorMode = sessionStorage.getItem('ditzz_visitor_mode');
         let visitorUsername = savedVisitorMode === 'custom'
-            ? (localStorage.getItem('ditzz_visitor_name') || defaultVisitorUsername)
+            ? (sessionStorage.getItem('ditzz_visitor_name') || defaultVisitorUsername)
             : defaultVisitorUsername;
 
         visitorUsernameMode.value = savedVisitorMode === 'custom' ? 'custom' : 'default';
@@ -587,7 +588,7 @@
             usernameFeedback.textContent = isCustom
                 ? 'Gunakan 3-18 karakter: huruf, angka, underscore (_) atau hyphen (-). Nama kasar dan penyamaran identitas dilarang. Username disimpan di browser ini.'
                 : `Username default Anda: ${defaultVisitorUsername}`;
-            localStorage.setItem('ditzz_visitor_mode', visitorUsernameMode.value);
+            sessionStorage.setItem('ditzz_visitor_mode', visitorUsernameMode.value);
         });
 
         function validateVisitorUsername(playSound) {
@@ -622,12 +623,12 @@
             }
             if (visitorUsernameMode.value === 'custom') {
                 visitorUsername = visitorUsernameInput.value.trim();
-                localStorage.setItem('ditzz_visitor_name', visitorUsername);
-                localStorage.setItem('ditzz_visitor_mode', 'custom');
+                sessionStorage.setItem('ditzz_visitor_name', visitorUsername);
+                sessionStorage.setItem('ditzz_visitor_mode', 'custom');
             } else {
                 visitorUsername = defaultVisitorUsername;
-                localStorage.setItem('ditzz_visitor_name', visitorUsername);
-                localStorage.setItem('ditzz_visitor_mode', 'default');
+                sessionStorage.setItem('ditzz_visitor_name', visitorUsername);
+                sessionStorage.setItem('ditzz_visitor_mode', 'default');
             }
 
             const msgData = {
@@ -721,18 +722,20 @@
             { name: 'NEO TOKYO DRIFT PHONK', id: 'f-tF_GqY7lI', start: 0 }
         ];
 
-        let activeTrackId = localStorage.getItem('ditzz_selected_track_id') || defaultTracks[0].id;
-        let activeTrackName = localStorage.getItem('ditzz_selected_track_name') || defaultTracks[0].name;
+        let activeTrackId = sessionStorage.getItem('ditzz_selected_track_id') || defaultTracks[0].id;
+        let activeTrackName = sessionStorage.getItem('ditzz_selected_track_name') || defaultTracks[0].name;
         let activeStartSec = (activeTrackId === (appCfg.introMusicId || 'tGv7CUutzqU')) ? (appCfg.introStartTime || 24) : 0;
-        const storedVolume = localStorage.getItem('ditzz_volume');
+        const storedVolume = sessionStorage.getItem('ditzz_volume');
         let activeVolume = storedVolume === null ? 100 : Math.min(100, Math.max(0, parseInt(storedVolume, 10) || 0));
         let isPlaying = true;
+        let musicPlaybackMode = sessionStorage.getItem('ditzz_music_playback_mode') === 'advance' ? 'advance' : 'repeat';
         let isMuted = false;
 
         const hudPlayer = document.getElementById('cyberAudioPlayer');
         const hudTitle = document.getElementById('hudTrackTitle');
         const hudStatus = document.getElementById('hudStatus');
         const hudPlayBtn = document.getElementById('hudPlayBtn');
+        const musicModeBtn = document.getElementById('musicModeBtn');
         const hudVolSlider = document.getElementById('hudVolSlider');
         const hudVolLabel = document.getElementById('hudVolLabel');
         const hudVolIcon = document.getElementById('hudVolIcon');
@@ -746,11 +749,13 @@
         const customYtInput = document.getElementById('customYtInput');
         const unmuteToast = document.getElementById('unmuteToast');
         const popoverList = document.getElementById('trackPopoverList');
+        let trackLoadSequence = 0;
+        let youtubeAutoAdvanceArmed = false;
 
-        const hasSavedAudioTime = localStorage.getItem('ditzz_audio_time') !== null;
-        const savedAudioTime = Number(localStorage.getItem('ditzz_audio_time'));
-        const savedAudioAt = Number(localStorage.getItem('ditzz_audio_last_saved'));
-        const savedAudioPlaying = localStorage.getItem('ditzz_audio_playing') !== 'false';
+        const hasSavedAudioTime = sessionStorage.getItem('ditzz_audio_time') !== null;
+        const savedAudioTime = Number(sessionStorage.getItem('ditzz_audio_time'));
+        const savedAudioAt = Number(sessionStorage.getItem('ditzz_audio_last_saved'));
+        const savedAudioPlaying = sessionStorage.getItem('ditzz_audio_playing') !== 'false';
         const savedAudioAge = Date.now() - savedAudioAt;
         const storedPosition = hasSavedAudioTime && Number.isFinite(savedAudioTime) && savedAudioTime >= 0
             ? savedAudioTime + (savedAudioPlaying && savedAudioAge >= 0 && savedAudioAge < 120000 ? Math.floor(savedAudioAge / 1000) : 0)
@@ -766,9 +771,9 @@
         }
 
         function saveAudioPosition() {
-            localStorage.setItem('ditzz_audio_time', String(getAudioPosition()));
-            localStorage.setItem('ditzz_audio_last_saved', String(Date.now()));
-            localStorage.setItem('ditzz_audio_playing', String(isPlaying));
+            sessionStorage.setItem('ditzz_audio_time', String(getAudioPosition()));
+            sessionStorage.setItem('ditzz_audio_last_saved', String(Date.now()));
+            sessionStorage.setItem('ditzz_audio_playing', String(isPlaying));
         }
 
         function sendYtCommand(command, arg) {
@@ -781,8 +786,24 @@
             }
         }
 
+        function updateMusicModeButton() {
+            const repeatMode = musicPlaybackMode === 'repeat';
+            musicModeBtn.innerHTML = repeatMode ? '<i class="fas fa-redo"></i>' : '<i class="fas fa-forward"></i>';
+            musicModeBtn.title = repeatMode ? 'Mode musik: ulangi lagu ini' : 'Mode musik: lanjut ke lagu berikutnya';
+            musicModeBtn.setAttribute('aria-label', musicModeBtn.title);
+            musicModeBtn.setAttribute('aria-pressed', String(!repeatMode));
+        }
+
+        function playNextWebsiteTrack() {
+            const currentIndex = defaultTracks.findIndex(track => track.id === activeTrackId);
+            const nextTrack = defaultTracks[(currentIndex + 1 + defaultTracks.length) % defaultTracks.length];
+            loadWebsiteTrack(nextTrack.id, nextTrack.start || 0, nextTrack.name, true);
+        }
+
         function loadWebsiteTrack(id, startSec, name, shouldPlay = true) {
             if (window.ditzzMusicUnavailable) shouldPlay = false;
+            const loadSequence = ++trackLoadSequence;
+            youtubeAutoAdvanceArmed = false;
             activeTrackId = id;
             activeStartSec = startSec || 0;
             isPlaying = shouldPlay;
@@ -795,21 +816,27 @@
             hudVolSlider.value = activeVolume;
             hudVolLabel.textContent = activeVolume + '%';
 
-            localStorage.setItem('ditzz_selected_track_id', id);
-            localStorage.setItem('ditzz_selected_track_name', activeTrackName);
-            localStorage.setItem('ditzz_volume', activeVolume);
+            sessionStorage.setItem('ditzz_selected_track_id', id);
+            sessionStorage.setItem('ditzz_selected_track_name', activeTrackName);
+            sessionStorage.setItem('ditzz_volume', activeVolume);
             saveAudioPosition();
 
             if (ytDirectLink) ytDirectLink.href = `https://youtu.be/${id}${activeStartSec ? '?t=' + activeStartSec : ''}`;
 
             cyberYtIframe.onload = () => {
+                sendYtCommand('addEventListener', 'onStateChange');
                 setTimeout(() => {
+                    if (loadSequence !== trackLoadSequence) return;
                     sendYtCommand('unMute');
                     sendYtCommand('setVolume', activeVolume);
                     sendYtCommand(isPlaying ? 'playVideo' : 'pauseVideo');
                 }, 400);
+                setTimeout(() => {
+                    if (loadSequence === trackLoadSequence) youtubeAutoAdvanceArmed = true;
+                }, 1500);
             };
-            cyberYtIframe.src = `https://www.youtube.com/embed/${id}?autoplay=${isPlaying ? 1 : 0}&start=${activeStartSec}&loop=1&playlist=${id}&controls=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}&playsinline=1&volume=${activeVolume}`;
+            const loop = musicPlaybackMode === 'repeat' ? 1 : 0;
+            cyberYtIframe.src = `https://www.youtube.com/embed/${id}?autoplay=${isPlaying ? 1 : 0}&start=${activeStartSec}&loop=${loop}&playlist=${id}&controls=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}&playsinline=1&volume=${activeVolume}`;
 
             hudPlayer.classList.toggle('paused', !isPlaying);
             hudPlayBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
@@ -820,6 +847,20 @@
         loadWebsiteTrack(activeTrackId, audioPositionAnchorSec, activeTrackName, isPlaying);
         window.setInterval(saveAudioPosition, 1000);
         window.addEventListener('pagehide', saveAudioPosition);
+        window.addEventListener('message', event => {
+            if (event.origin !== 'https://www.youtube.com' || event.source !== cyberYtIframe.contentWindow) return;
+            let data;
+            try {
+                data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            } catch (error) {
+                return;
+            }
+            const ended = (data && data.event === 'onStateChange' && Number(data.info) === 0)
+                || (data && data.event === 'infoDelivery' && data.info && Number(data.info.playerState) === 0);
+            if (!ended || !youtubeAutoAdvanceArmed || musicPlaybackMode !== 'advance' || !isPlaying) return;
+            youtubeAutoAdvanceArmed = false;
+            playNextWebsiteTrack();
+        });
 
         let userInteracted = false;
         function onUserGesture() {
@@ -896,12 +937,21 @@
             saveAudioPosition();
         });
         hudPlayBtn.addEventListener('click', togglePlay);
+        musicModeBtn.addEventListener('click', () => {
+            const position = getAudioPosition();
+            const shouldPlay = isPlaying;
+            musicPlaybackMode = musicPlaybackMode === 'repeat' ? 'advance' : 'repeat';
+            sessionStorage.setItem('ditzz_music_playback_mode', musicPlaybackMode);
+            updateMusicModeButton();
+            loadWebsiteTrack(activeTrackId, position, activeTrackName, shouldPlay);
+        });
+        updateMusicModeButton();
         document.getElementById('hudAudioToggle').addEventListener('click', togglePlay);
 
         hudVolSlider.addEventListener('input', (e) => {
             activeVolume = parseInt(e.target.value);
             hudVolLabel.textContent = activeVolume + '%';
-            localStorage.setItem('ditzz_volume', activeVolume);
+            sessionStorage.setItem('ditzz_volume', activeVolume);
             sendYtCommand('setVolume', activeVolume);
             if (activeVolume === 0) {
                 sendYtCommand('mute');

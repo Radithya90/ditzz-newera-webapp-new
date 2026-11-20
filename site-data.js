@@ -21,6 +21,21 @@
         return JSON.stringify(value);
     }
 
+    [
+        'ditzz_visitor_name',
+        'ditzz_visitor_default_name',
+        'ditzz_visitor_mode',
+        'ditzz_selected_track_id',
+        'ditzz_selected_track_name',
+        'ditzz_selected_track_source',
+        'ditzz_selected_track_url',
+        'ditzz_selected_track_media_type',
+        'ditzz_audio_time',
+        'ditzz_audio_last_saved',
+        'ditzz_audio_playing',
+        'ditzz_volume'
+    ].forEach(key => localStorage.removeItem(key));
+
     function setStatus(status, error) {
         state.status = status;
         state.error = error || null;
@@ -100,14 +115,121 @@
         return sessionId;
     }
 
-    function safeVideoUrl(value) {
+    function safeBackgroundUrl(value) {
         if (typeof value !== 'string' || !value.trim()) return '';
         try {
             const url = new URL(value.trim());
-            return url.protocol === 'https:' && /\.(mp4|webm|ogg)$/i.test(url.pathname) ? url.href : '';
+            return url.protocol === 'https:'
+                && /\.(mp4|webm|ogg|ogv|gif|apng|webp|png|jpe?g)$/i.test(url.pathname) ? url.href : '';
         } catch (error) {
             return '';
         }
+    }
+
+    function appendBackgroundMedia(target, value, className) {
+        const mediaUrl = safeBackgroundUrl(value);
+        if (!mediaUrl) return;
+        if (/\.(gif|apng|webp|png|jpe?g)$/i.test(new URL(mediaUrl).pathname)) {
+            const image = document.createElement('img');
+            image.className = className;
+            image.src = mediaUrl;
+            image.alt = '';
+            target.appendChild(image);
+            return;
+        }
+        const video = document.createElement('video');
+        video.className = className;
+        video.src = mediaUrl;
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        target.appendChild(video);
+    }
+
+    function appendCooldown(target, endsAt, updatedAt, className) {
+        const cooldown = document.createElement('div');
+        cooldown.className = className;
+        const label = document.createElement('span');
+        label.className = 'ditzz-cooldown-label';
+        const track = document.createElement('span');
+        track.className = 'ditzz-cooldown-track';
+        const progress = document.createElement('span');
+        progress.className = 'ditzz-cooldown-progress';
+        track.appendChild(progress);
+        cooldown.append(label, track);
+
+        const endTime = Date.parse(endsAt || '');
+        const startTime = Date.parse(updatedAt || '');
+        if (!Number.isFinite(endTime)) {
+            label.textContent = 'COOLDOWN: BELUM DIJADWALKAN';
+            progress.style.width = '0%';
+            target.appendChild(cooldown);
+            return;
+        }
+        const totalMs = Math.max(1000, endTime - (Number.isFinite(startTime) ? startTime : Date.now()));
+        const update = () => {
+            const remainingMs = endTime - Date.now();
+            if (remainingMs <= 0) {
+                label.textContent = 'COOLDOWN SELESAI — MENUNGGU PEMBARUAN ADMIN';
+                progress.style.width = '100%';
+                window.clearInterval(timer);
+                return;
+            }
+            const totalSeconds = Math.ceil(remainingMs / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const time = days
+                ? `${days}H ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                : `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            label.textContent = `COOLDOWN SELESAI DALAM ${time}`;
+            progress.style.width = `${Math.max(0, Math.min(100, ((totalMs - remainingMs) / totalMs) * 100))}%`;
+        };
+        const timer = window.setInterval(update, 1000);
+        update();
+        target.appendChild(cooldown);
+    }
+
+    function appendStatusAudio(panel, presentation, backLink, title) {
+        const audioUrl = String(presentation.audioUrl || '');
+        const validAudioUrl = (() => {
+            try {
+                const url = new URL(audioUrl);
+                return url.protocol === 'https:' && /\.(mp3|m4a|wav|ogg|aac)$/i.test(url.pathname) ? url.href : '';
+            } catch (error) {
+                return '';
+            }
+        })();
+        if (validAudioUrl) {
+            const audio = document.createElement('audio');
+            audio.className = 'ditzz-status-audio-file';
+            audio.controls = true;
+            audio.preload = 'none';
+            audio.src = validAudioUrl;
+            audio.setAttribute('aria-label', title);
+            panel.insertBefore(audio, backLink);
+            return;
+        }
+        const musicId = String(presentation.musicId || '');
+        if (!/^[\w-]{11}$/.test(musicId)) return;
+        const musicButton = document.createElement('button');
+        musicButton.className = 'ditzz-status-music';
+        musicButton.type = 'button';
+        musicButton.textContent = 'PUTAR AUDIO STATUS';
+        musicButton.addEventListener('click', () => {
+            const player = document.createElement('iframe');
+            player.className = 'ditzz-status-audio';
+            player.title = title;
+            player.allow = 'autoplay; encrypted-media; picture-in-picture';
+            player.referrerPolicy = 'strict-origin-when-cross-origin';
+            player.src = `https://www.youtube.com/embed/${musicId}?autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+            panel.insertBefore(player, backLink);
+            musicButton.textContent = 'AUDIO STATUS AKTIF';
+            musicButton.disabled = true;
+        }, { once: true });
+        panel.insertBefore(musicButton, backLink);
     }
 
     function renderStatusOverlay(id, title, presentation, details) {
@@ -118,17 +240,7 @@
         overlay.setAttribute('role', 'status');
         overlay.setAttribute('aria-live', 'polite');
 
-        const videoUrl = safeVideoUrl(presentation.backgroundVideoUrl);
-        if (videoUrl) {
-            const video = document.createElement('video');
-            video.className = 'ditzz-status-video';
-            video.src = videoUrl;
-            video.autoplay = true;
-            video.loop = true;
-            video.muted = true;
-            video.playsInline = true;
-            overlay.appendChild(video);
-        }
+        appendBackgroundMedia(overlay, presentation.backgroundVideoUrl, 'ditzz-status-video');
 
         const panel = document.createElement('section');
         panel.className = 'ditzz-status-panel';
@@ -136,7 +248,7 @@
         kicker.className = 'ditzz-status-kicker';
         kicker.textContent = '// DITZZ NEWERA SYSTEM NOTICE';
         const heading = document.createElement('h1');
-        heading.textContent = title;
+        heading.textContent = presentation.title || title;
         const message = document.createElement('p');
         message.className = 'ditzz-status-message';
         message.textContent = presentation.message || 'Kami sedang menyiapkan pembaruan. Silakan kembali beberapa saat lagi.';
@@ -158,57 +270,13 @@
             panel.appendChild(administrator);
         }
 
-        const countdown = document.createElement('p');
-        countdown.className = 'ditzz-status-countdown';
-        if (details && details.endsAt) {
-            const updateCountdown = () => {
-                const remainingMs = Date.parse(details.endsAt) - Date.now();
-                if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
-                    countdown.textContent = 'Waktu perkiraan selesai tercapai; status menunggu pembaruan Admin.';
-                    window.clearInterval(countdownTimer);
-                    return;
-                }
-                const totalSeconds = Math.ceil(remainingMs / 1000);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-                countdown.textContent = `PERKIRAAN KEMBALI: ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            };
-            const countdownTimer = window.setInterval(updateCountdown, 1000);
-            updateCountdown();
-        } else {
-            countdown.textContent = 'Jadwal kembali akan diumumkan Admin.';
-        }
-        panel.appendChild(countdown);
-
-        const musicId = String(presentation.musicId || '');
-        if (/^[\w-]{11}$/.test(musicId)) {
-            const musicButton = document.createElement('button');
-            musicButton.className = 'ditzz-status-music';
-            musicButton.type = 'button';
-            musicButton.textContent = 'PUTAR AUDIO STATUS';
-            musicButton.addEventListener('click', () => {
-                let player = panel.querySelector('.ditzz-status-audio');
-                if (!player) {
-                    player = document.createElement('iframe');
-                    player.className = 'ditzz-status-audio';
-                    player.title = 'Audio informasi status';
-                    player.allow = 'autoplay; encrypted-media; picture-in-picture';
-                    player.referrerPolicy = 'strict-origin-when-cross-origin';
-                    panel.insertBefore(player, backLink);
-                }
-                player.src = `https://www.youtube.com/embed/${musicId}?autoplay=1&playsinline=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
-                musicButton.textContent = 'AUDIO STATUS AKTIF';
-                musicButton.disabled = true;
-            }, { once: true });
-            panel.appendChild(musicButton);
-        }
-
         const backLink = document.createElement('a');
         backLink.className = 'ditzz-status-back';
         backLink.href = details && details.global ? '/index.html' : '/home.html';
         backLink.textContent = 'KEMBALI KE HALAMAN UTAMA';
         panel.appendChild(backLink);
+        appendCooldown(panel, details && details.endsAt, details && details.updatedAt, 'ditzz-status-countdown');
+        appendStatusAudio(panel, presentation, backLink, 'Audio informasi status');
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
     }
@@ -241,9 +309,11 @@
             title,
             {
                 message: presentation.message || config.featureStatusMessage,
+                title: presentation.title,
                 repairPlan: presentation.repairPlan,
                 backgroundVideoUrl: presentation.backgroundVideoUrl,
-                musicId: presentation.musicId
+                musicId: presentation.musicId,
+                audioUrl: presentation.audioUrl
             },
             { adminName: presentation.adminName, endsAt: presentation.endsAt, updatedAt: presentation.updatedAt }
         );
@@ -261,22 +331,12 @@
         panel.className = 'ditzz-music-status';
         panel.setAttribute('role', 'status');
         panel.setAttribute('aria-live', 'polite');
-        const videoUrl = safeVideoUrl(presentation.backgroundVideoUrl);
-        if (videoUrl) {
-            const video = document.createElement('video');
-            video.src = videoUrl;
-            video.autoplay = true;
-            video.loop = true;
-            video.muted = true;
-            video.playsInline = true;
-            video.className = 'ditzz-music-status-video';
-            panel.appendChild(video);
-        }
+        appendBackgroundMedia(panel, presentation.backgroundVideoUrl, 'ditzz-music-status-video');
 
         const heading = document.createElement('strong');
-        heading.textContent = config.websiteMusicEnabled === false
+        heading.textContent = presentation.title || (config.websiteMusicEnabled === false
             ? 'MUSIK DINONAKTIFKAN OLEH ADMIN'
-            : status === 'comingSoon' ? 'FITUR MUSIK SEGERA HADIR' : 'FITUR MUSIK SEDANG DIPERBARUI';
+            : status === 'comingSoon' ? 'FITUR MUSIK SEGERA HADIR' : 'FITUR MUSIK SEDANG DIPERBARUI');
         const message = document.createElement('span');
         message.textContent = presentation.message || config.featureStatusMessage
             || 'Pemutar musik sedang diperbarui.';
@@ -292,38 +352,8 @@
             panel.appendChild(administrator);
         }
 
-        if (presentation.endsAt) {
-            const countdown = document.createElement('span');
-            countdown.className = 'ditzz-music-status-countdown';
-            const updateCountdown = () => {
-                const remainingMs = Date.parse(presentation.endsAt) - Date.now();
-                if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
-                    countdown.textContent = 'Perkiraan selesai tercapai; status menunggu Admin.';
-                    window.clearInterval(countdownTimer);
-                    return;
-                }
-                countdown.textContent = `Perkiraan kembali: ${Math.ceil(remainingMs / 1000)} detik`;
-            };
-            const countdownTimer = window.setInterval(updateCountdown, 1000);
-            updateCountdown();
-            panel.appendChild(countdown);
-        }
-
-        if (/^[\w-]{11}$/.test(String(presentation.musicId || ''))) {
-            const musicButton = document.createElement('button');
-            musicButton.type = 'button';
-            musicButton.textContent = 'PUTAR AUDIO STATUS';
-            musicButton.addEventListener('click', () => {
-                const player = document.createElement('iframe');
-                player.title = 'Audio informasi status musik';
-                player.allow = 'autoplay; encrypted-media; picture-in-picture';
-                player.referrerPolicy = 'strict-origin-when-cross-origin';
-                player.src = `https://www.youtube.com/embed/${presentation.musicId}?autoplay=1&playsinline=1&origin=${encodeURIComponent(location.origin)}`;
-                panel.insertBefore(player, musicButton);
-                musicButton.remove();
-            }, { once: true });
-            panel.appendChild(musicButton);
-        }
+        appendCooldown(panel, presentation.endsAt, presentation.updatedAt, 'ditzz-music-status-countdown');
+        appendStatusAudio(panel, presentation, null, 'Audio informasi status musik');
 
         document.body.appendChild(panel);
     }
@@ -331,7 +361,9 @@
     function renderAnnouncement(announcement) {
         const previous = document.getElementById('ditzzLiveAnnouncement');
         if (previous) previous.remove();
-        if (!announcement || Date.parse(announcement.expires_at) <= Date.now()
+        if (!announcement || !Array.isArray(announcement.target_roles)
+            || !announcement.target_roles.includes('visitor')
+            || Date.parse(announcement.expires_at) <= Date.now()
             || window.location.pathname.startsWith('/admin/')
             || document.getElementById('ditzzGlobalSiteStatus')) return;
 
@@ -389,7 +421,7 @@
                 const client = await requireClient();
                 const { error } = await client.from('announcement_responses').insert({
                     announcement_id: announcement.id,
-                    visitor_name: (localStorage.getItem('ditzz_visitor_name') || 'Pengunjung').slice(0, 40),
+                    visitor_name: (sessionStorage.getItem('ditzz_visitor_name') || 'Pengunjung').slice(0, 40),
                     response: responseInput.value.trim()
                 });
                 if (error) throw error;
@@ -412,7 +444,8 @@
         if (!state.client || window.location.pathname.startsWith('/admin/')) return;
         const { data, error } = await state.client
             .from('site_announcements')
-            .select('id,message,created_by_name,created_at,expires_at')
+            .select('id,message,created_by_name,created_at,expires_at,target_roles')
+            .contains('target_roles', ['visitor'])
             .gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: false })
             .limit(1)
@@ -449,9 +482,18 @@
                 throw new Error('Supabase client library did not load.');
             }
 
+            const projectRef = new URL(config.url).hostname.split('.')[0];
+            const legacyAuthKey = `sb-${projectRef}-auth-token`;
+            localStorage.removeItem(legacyAuthKey);
+            localStorage.removeItem(`${legacyAuthKey}-code-verifier`);
             state.configured = true;
             state.client = window.supabase.createClient(config.url, config.anonKey, {
-                auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true,
+                    storage: window.sessionStorage
+                }
             });
             const row = await readRemoteState();
             const changed = cacheRemoteState(row, false);
@@ -520,6 +562,24 @@
         return result;
     }
 
+    async function writeSiteState(client, userId, values) {
+        const row = {
+            ...values,
+            updated_at: new Date().toISOString(),
+            updated_by: userId
+        };
+        const { data, error } = await client.from('site_state')
+            .update(row)
+            .eq('id', 'main')
+            .select('id');
+        if (error) throw error;
+        if (Array.isArray(data) && data.length) return;
+
+        const { error: insertError } = await client.from('site_state')
+            .insert({ id: 'main', ...row });
+        if (insertError) throw insertError;
+    }
+
     function normalizeVisitorName(name) {
         return String(name || '').normalize('NFKC').toLocaleLowerCase('id-ID').replace(/[^\p{L}\p{N}]/gu, '');
     }
@@ -560,7 +620,7 @@
         refresh,
         subscribeAdminUpdates,
         applyFeatureAvailability,
-        async recordVisitorEvent(eventType, visitorName, violationReason, fullscreenSnapshot) {
+        async recordVisitorEvent(eventType, visitorName, violationReason, fullscreenSnapshot, musicTrack) {
             await ready;
             if (!state.client) return false;
             const fullscreenSupported = fullscreenSnapshot
@@ -577,11 +637,12 @@
                     page: currentPageKey(),
                     sessionId: visitorSessionId(),
                     visitorName: visitorName === undefined
-                        ? localStorage.getItem('ditzz_visitor_name')
+                        ? sessionStorage.getItem('ditzz_visitor_name')
                         : visitorName,
                     violationReason,
                     fullscreenSupported,
-                    fullscreenActive
+                    fullscreenActive,
+                    musicTrack
                 })
             });
             let result = {};
@@ -597,7 +658,7 @@
             const result = await adminRequest('/api/admin/visitor-events');
             return result.events;
         },
-        async publishAnnouncement(message, durationMinutes, admin) {
+        async publishAnnouncement(message, durationMinutes, admin, targetRoles) {
             const client = await requireClient();
             const { data: session, error: sessionError } = await client.auth.getSession();
             if (sessionError) throw sessionError;
@@ -608,23 +669,41 @@
             }
             const cleanMessage = String(message || '').trim();
             const adminName = String(admin && admin.displayName || admin && admin.username || '').trim();
+            const allowedTargets = new Set(['visitor', 'security', 'reseller', 'partner']);
+            const recipients = Array.isArray(targetRoles) ? [...new Set(targetRoles)] : ['visitor'];
             if (!cleanMessage || cleanMessage.length > 2000) throw new Error('Pesan wajib diisi (maks. 2000 karakter).');
             if (!adminName || adminName.length > 50) throw new Error('Nama Admin tidak valid.');
+            if (!recipients.length || recipients.some(role => !allowedTargets.has(role))) {
+                throw new Error('Pilih setidaknya satu penerima pengumuman yang valid.');
+            }
             const { data, error } = await client.from('site_announcements').insert({
                 message: cleanMessage,
                 created_by: session.session.user.id,
                 created_by_name: adminName,
+                target_roles: recipients,
                 expires_at: new Date(Date.now() + duration * 60 * 1000).toISOString()
-            }).select('id,message,created_by_name,created_at,expires_at').single();
+            }).select('id,message,created_by_name,created_at,expires_at,target_roles').single();
             if (error) throw error;
             return data;
         },
         async listAnnouncements() {
             const client = await requireClient();
             const { data, error } = await client.from('site_announcements')
-                .select('id,message,created_by_name,created_at,expires_at')
+                .select('id,message,created_by_name,created_at,expires_at,target_roles')
                 .order('created_at', { ascending: false })
                 .limit(30);
+            if (error) throw error;
+            return data;
+        },
+        async listRoleAnnouncements(role) {
+            if (!['security', 'reseller', 'partner'].includes(role)) return [];
+            const client = await requireClient();
+            const { data, error } = await client.from('site_announcements')
+                .select('id,message,created_by_name,created_at,expires_at,target_roles')
+                .contains('target_roles', [role])
+                .gt('expires_at', new Date().toISOString())
+                .order('created_at', { ascending: false })
+                .limit(20);
             if (error) throw error;
             return data;
         },
@@ -635,9 +714,6 @@
         },
         async loadAnnouncementResponses() {
             const client = await requireClient();
-            const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-            const { error: deleteError } = await client.from('announcement_responses').delete().lt('created_at', cutoff);
-            if (deleteError) throw deleteError;
             const { data, error } = await client.from('announcement_responses')
                 .select('id,announcement_id,visitor_name,response,created_at')
                 .order('created_at', { ascending: false })
@@ -655,10 +731,10 @@
             if (error) throw error;
             const { data: profile, error: profileError } = await client
                 .from('admin_profiles')
-                .select('user_id,username,display_name,role,avatar_url')
+                .select('user_id,username,display_name,role,avatar_url,editable_pages')
                 .eq('user_id', data.user.id)
                 .maybeSingle();
-            if (profileError || !profile || !['admin', 'security'].includes(profile.role)) {
+            if (profileError || !profile || !['admin', 'security', 'reseller', 'partner'].includes(profile.role)) {
                 await client.auth.signOut();
                 throw profileError || new Error('Akun belum diberi role Admin/Keamanan di database.');
             }
@@ -669,7 +745,8 @@
                 username: profile.username,
                 displayName: profile.display_name,
                 role: profile.role,
-                profilePhoto: profile.avatar_url || ''
+                profilePhoto: profile.avatar_url || '',
+                editablePages: Array.isArray(profile.editable_pages) ? profile.editable_pages : []
             };
         },
         async signOut() {
@@ -695,7 +772,7 @@
             if (!session.session) return null;
             const { data, error } = await client
                 .from('admin_profiles')
-                .select('user_id,username,display_name,role,avatar_url')
+                .select('user_id,username,display_name,role,avatar_url,editable_pages')
                 .eq('user_id', session.session.user.id)
                 .maybeSingle();
             if (error) throw error;
@@ -706,6 +783,7 @@
                 displayName: data.display_name,
                 role: data.role,
                 profilePhoto: data.avatar_url || '',
+                editablePages: Array.isArray(data.editable_pages) ? data.editable_pages : [],
                 email: session.session.user.email
             };
         },
@@ -714,13 +792,7 @@
             const { data: session, error: sessionError } = await client.auth.getSession();
             if (sessionError) throw sessionError;
             if (!session.session) throw new Error('Masuk ke CPanel untuk menyimpan perubahan.');
-            const { error } = await client.from('site_state').upsert({
-                id: 'main',
-                config,
-                updated_at: new Date().toISOString(),
-                updated_by: session.session.user.id
-            }, { onConflict: 'id' });
-            if (error) throw error;
+            await writeSiteState(client, session.session.user.id, { config });
             localStorage.setItem('ditzz_config', JSON.stringify(config));
         },
         async saveProducts(products) {
@@ -728,13 +800,7 @@
             const { data: session, error: sessionError } = await client.auth.getSession();
             if (sessionError) throw sessionError;
             if (!session.session) throw new Error('Masuk ke CPanel untuk menyimpan perubahan.');
-            const { error } = await client.from('site_state').upsert({
-                id: 'main',
-                products,
-                updated_at: new Date().toISOString(),
-                updated_by: session.session.user.id
-            }, { onConflict: 'id' });
-            if (error) throw error;
+            await writeSiteState(client, session.session.user.id, { products });
             localStorage.setItem('ditzz_products', JSON.stringify(products));
         },
         async migrateLocalData(defaults) {
@@ -913,6 +979,32 @@
             });
             if (error) throw error;
             return client.storage.from('admin-avatars').getPublicUrl(objectPath).data.publicUrl;
+        },
+        async uploadSiteMedia(file, filenameHint) {
+            const client = await requireClient();
+            const allowedTypes = new Set([
+                'image/gif', 'image/apng', 'image/webp', 'image/png', 'image/jpeg',
+                'video/mp4', 'video/webm', 'video/ogg',
+                'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/aac'
+            ]);
+            if (!allowedTypes.has(file.type)) {
+                throw new Error('Gunakan file GIF/WEBP/PNG/JPG, video MP4/WEBM/OGG, atau audio MP3/M4A/WAV/OGG/AAC.');
+            }
+            const { data: session, error: sessionError } = await client.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!session.session) throw new Error('Masuk ke CPanel untuk mengunggah media.');
+            const extension = String(file.name.split('.').pop() || '').toLowerCase();
+            if (!/^(gif|apng|webp|png|jpe?g|mp4|webm|ogv|ogg|mp3|m4a|wav|aac)$/.test(extension)) {
+                throw new Error('Ekstensi file media tidak didukung.');
+            }
+            const safeName = String(filenameHint || 'maintenance').replace(/[^a-zA-Z0-9._-]/g, '-');
+            const objectPath = `${session.session.user.id}/${Date.now()}-${safeName}.${extension}`;
+            const { error } = await client.storage.from('site-media').upload(objectPath, file, {
+                contentType: file.type,
+                upsert: false
+            });
+            if (error) throw error;
+            return client.storage.from('site-media').getPublicUrl(objectPath).data.publicUrl;
         },
         listAdminUsers() {
             return adminRequest('/api/admin/users').then(result => result.users);

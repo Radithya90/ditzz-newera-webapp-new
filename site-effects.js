@@ -9,7 +9,7 @@
     ]);
     const isEntryPage = /(?:^|\/)index\.html$/i.test(window.location.pathname);
     const hasCpanelSession = sessionStorage.getItem('ditzz_admin_auth') === 'true'
-        && ['admin', 'security'].includes(sessionStorage.getItem('ditzz_admin_role'));
+        && ['admin', 'security', 'reseller', 'partner'].includes(sessionStorage.getItem('ditzz_admin_role'));
     const isCpanelPreview = new URLSearchParams(window.location.search).get('cpanelPreview') === '1'
         && hasCpanelSession;
     let navigatingToEntry = false;
@@ -32,6 +32,7 @@
     }
 
     function isLegacyTemporaryBlock(block) {
+        if (!block) return false;
         const normalizedTerm = String(block.term || '').normalize('NFKC').toLocaleLowerCase('id-ID').replace(/[^\p{L}\p{N}]/gu, '');
         return legacyTemporaryBlockTerms.has(normalizedTerm);
     }
@@ -53,6 +54,16 @@
         title.setAttribute('tabindex', '-1');
         title.textContent = 'AKSES HALAMAN PUBLIK DIBLOKIR';
         title.style.cssText = 'margin:0 0 16px;color:#ff7182;font:700 1rem Orbitron,sans-serif';
+        const dinoTrack = document.createElement('div');
+        dinoTrack.className = 'visitor-block-dino-track';
+        dinoTrack.setAttribute('aria-hidden', 'true');
+        const dino = document.createElement('span');
+        dino.className = 'visitor-block-dino';
+        dino.textContent = '🦖';
+        const cactus = document.createElement('span');
+        cactus.className = 'visitor-block-cactus';
+        cactus.textContent = '🌵';
+        dinoTrack.append(dino, cactus);
         const details = document.createElement('p');
         details.textContent = `Nama visitor "${block.name}" cocok dengan entri yang diblokir${block.term ? `: "${block.term}"` : ''}.`;
         const appeal = document.createElement('p');
@@ -61,32 +72,49 @@
         privacy.textContent = 'Ini hanya pembatasan akses situs; perangkat tidak dilacak, diubah, atau diretas.';
         privacy.style.cssText = 'margin-bottom:0;color:#9da7b3;font-size:.8rem';
 
-        panel.append(title, details, appeal, privacy);
+        panel.append(title, dinoTrack, details, appeal, privacy);
         overlay.appendChild(panel);
         document.body.appendChild(overlay);
         title.focus();
     }
 
     function enforceVisitorBlock() {
-        const block = parseVisitorBlock(localStorage.getItem(visitorBlockKey));
-        if (!block) return false;
+        if (window.location.pathname.startsWith('/admin/')) return false;
+        let block = parseVisitorBlock(localStorage.getItem(visitorBlockKey));
         if (isLegacyTemporaryBlock(block)) {
             localStorage.removeItem(visitorBlockKey);
             localStorage.removeItem('ditzz_visitor_pending_approval');
-            return false;
+            block = null;
         }
-        showVisitorBlock(block);
+        if (block) showVisitorBlock(block);
         if (window.DitzzData && window.DitzzData.ready) {
             window.DitzzData.ready.then(async () => {
                 if (!window.DitzzData.configured) return;
                 try {
-                    if (await window.DitzzData.checkVisitorBlocked(block.name)) return;
-                    const currentBlock = parseVisitorBlock(localStorage.getItem(visitorBlockKey));
-                    if (!currentBlock || currentBlock.name !== block.name) return;
-                    localStorage.removeItem(visitorBlockKey);
-                    const overlay = document.getElementById('visitorPermanentBlock');
-                    if (overlay) overlay.remove();
-                    window.location.reload();
+                    const customName = sessionStorage.getItem('ditzz_visitor_mode') === 'custom'
+                        ? sessionStorage.getItem('ditzz_visitor_name')
+                        : '';
+                    const nameToCheck = customName || block && block.name;
+                    if (!nameToCheck) return;
+                    const isGloballyBlocked = await window.DitzzData.checkVisitorBlocked(nameToCheck);
+                    if (isGloballyBlocked) {
+                        const globalBlock = {
+                            name: nameToCheck,
+                            term: 'blokir global Supabase',
+                            createdAt: new Date().toISOString()
+                        };
+                        localStorage.setItem(visitorBlockKey, JSON.stringify(globalBlock));
+                        showVisitorBlock(globalBlock);
+                        return;
+                    }
+                    if (block) {
+                        const currentBlock = parseVisitorBlock(localStorage.getItem(visitorBlockKey));
+                        if (!currentBlock || currentBlock.name !== block.name) return;
+                        localStorage.removeItem(visitorBlockKey);
+                        const overlay = document.getElementById('visitorPermanentBlock');
+                        if (overlay) overlay.remove();
+                        window.location.reload();
+                    }
                 } catch (error) {
                     console.error('Visitor block status could not be verified.', error);
                     const details = document.querySelector('#visitorPermanentBlock p');
@@ -94,7 +122,7 @@
                 }
             });
         }
-        return true;
+        return Boolean(block);
     }
 
     function entryUrl() {

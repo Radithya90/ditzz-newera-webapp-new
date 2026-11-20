@@ -101,6 +101,10 @@
         .yt-frame-container iframe {
             width: 100%; height: 100%; border: none; display: block;
         }
+        .yt-frame-container video, .yt-frame-container audio {
+            width: 100%; height: 100%; border: none; display: block; background: #000;
+        }
+        .yt-frame-container video { object-fit: contain; }
 
         .cyber-audio-player {
             position: fixed; bottom: 25px; left: 25px; z-index: 99990;
@@ -151,7 +155,7 @@
             box-shadow: 0 0 25px rgba(0,0,0,0.8); z-index: 99991;
         }
         .track-popover.open { display: flex; animation: fadeIn 0.2s; }
-        .tp-item { padding: 8px 10px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; border-left: 2px solid transparent; transition: all 0.2s; }
+        .tp-item { width: 100%; padding: 8px 10px; border-top: 0; border-right: 0; border-bottom: 0; background: transparent; text-align: left; font: inherit; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; border-left: 2px solid transparent; transition: all 0.2s; }
         .tp-item:hover, .tp-item.active { color: var(--accent-green); border-left-color: var(--accent-green); background: rgba(0,255,65,0.08); }
 
         /* YouTube Search Modal */
@@ -165,6 +169,7 @@
         .yt-search-box {
             background: rgba(13, 17, 23, 0.98); border: 1px solid var(--accent-green);
             border-radius: 6px; padding: 24px; max-width: 540px; width: 100%;
+            max-height: calc(100vh - 40px); overflow-y: auto;
             box-shadow: 0 0 35px rgba(0, 255, 65, 0.25);
             font-family: 'Rajdhani', sans-serif; position: relative;
         }
@@ -190,6 +195,16 @@
         }
         .yts-action-btn:hover { background: var(--accent-green); color: #000; box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
         .yts-presets-title { font-size: 0.7rem; color: var(--accent-cyan); font-family: 'Share Tech Mono', monospace; margin-bottom: 8px; letter-spacing: 1px; }
+        .visitor-local-media {
+            margin: 14px 0 18px; padding: 12px; border: 1px solid var(--border-color);
+            background: rgba(0, 255, 65, .04); color: var(--text-secondary);
+        }
+        .visitor-local-media label {
+            display: block; margin-bottom: 8px; color: var(--accent-green);
+            font: 700 .72rem 'Orbitron', sans-serif;
+        }
+        .visitor-local-media input { width: 100%; font-size: .75rem; }
+        .visitor-local-media p { margin-top: 8px; font-size: .7rem; line-height: 1.5; }
         .yts-presets-grid { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
         .yts-preset-item {
             background: rgba(26, 26, 46, 0.6); border: 1px solid var(--border-color);
@@ -798,7 +813,8 @@
             <div class="audio-status-sub" id="hudStatus">FREQUENCY 100% // ONLINE</div>
         </div>
         <button class="audio-ctrl-btn" id="hudPlayBtn" title="Play / Pause"><i class="fas fa-pause"></i></button>
-        <button class="audio-ctrl-btn" id="hudSearchBtn" title="Cari / Input Lagu YouTube"><i class="fab fa-youtube" style="color:var(--accent-red);"></i></button>
+        <button class="audio-ctrl-btn" id="musicModeBtn" type="button" title="Mode musik: ulangi lagu ini" aria-label="Mode musik: ulangi lagu ini"><i class="fas fa-redo"></i></button>
+        <button class="audio-ctrl-btn" id="hudSearchBtn" title="Cari YouTube atau pilih file musik"><i class="fas fa-plus"></i></button>
         <button class="audio-ctrl-btn" id="hudSwitchBtn" title="Pilih Channel Preset"><i class="fas fa-list"></i></button>
 
         <div class="vol-container">
@@ -832,6 +848,12 @@
                 <button class="yts-action-btn" id="loadCustomYtBtn">
                     <i class="fas fa-play"></i> PUTAR LAGU
                 </button>
+            </div>
+
+            <div class="visitor-local-media">
+                <label for="visitorLocalMediaInput"><i class="fas fa-folder-open"></i> TAMBAHKAN FILE DARI PERANGKAT</label>
+                <input id="visitorLocalMediaInput" type="file" accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,audio/aac,video/mp4,video/webm,video/ogg" multiple>
+                <p>File hanya diputar di perangkat Anda dan tidak diunggah. Database hanya menyimpan nama media dan pilihan playlist pada sesi ini.</p>
             </div>
 
             <div class="yts-presets-title">// REKOMENDASI PRESET CYBERPUNK (KLIK LANGSUNG PUTAR):</div>
@@ -1064,7 +1086,7 @@
         const appCfg = JSON.parse(localStorage.getItem('ditzz_config') || '{}');
         applyFeatureAvailability(appCfg);
         const welcomeOverlay = document.getElementById('welcomeOverlay');
-        const visitorName = localStorage.getItem('ditzz_visitor_name') || 'Pengunjung';
+        const visitorName = sessionStorage.getItem('ditzz_visitor_name') || 'Pengunjung';
         const defaultWelcomePantun = 'Naik sepeda ke kota Batu,\nBerhenti sebentar membeli ketan.\nSelamat datang, pengunjung baru,\nBug-nya cuma lagi cari makan! 😄';
         const legacyWelcomePantun = [
             'Jalan-jalan naik sepeda,',
@@ -1084,45 +1106,76 @@
         });
 
         function parseYouTubeUrl(url) {
-            if (!url) return { id: 'tGv7CUutzqU', start: 24 };
-            let id = 'tGv7CUutzqU';
-            let start = 0;
-            const timeMatch = url.match(/[?&](?:t|start)=(\d+)/) || url.match(/[?&]t=(\d+)s/);
-            if (timeMatch) start = parseInt(timeMatch[1]);
-
-            if (url.length === 11 && !url.includes('/') && !url.includes('.')) {
-                id = url;
-            } else {
-                const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-                if (match) id = match[1];
-            }
-            return { id, start };
+            const input = String(url || '').trim();
+            if (/^[\w-]{11}$/.test(input)) return { id: input, start: 0 };
+            const parsedUrl = new URL(input);
+            const host = parsedUrl.hostname.toLowerCase().replace(/^www\./, '');
+            const id = host === 'youtu.be'
+                ? parsedUrl.pathname.split('/').filter(Boolean)[0]
+                : ['youtube.com', 'm.youtube.com'].includes(host)
+                    ? parsedUrl.searchParams.get('v') || parsedUrl.pathname.match(/^\/(?:embed|shorts|live)\/([\w-]{11})/)?.[1]
+                    : '';
+            if (!/^[\w-]{11}$/.test(id || '')) throw new Error('URL YouTube tidak berisi ID video yang valid.');
+            const start = Number(parsedUrl.searchParams.get('t') || parsedUrl.searchParams.get('start') || 0);
+            return { id, start: Number.isFinite(start) && start > 0 ? Math.floor(start) : 0 };
         }
 
-        const defaultTracks = [
-            { name: appCfg.introTitle || 'DITZZ SPECIAL THEME (The 1975 - About You)', id: appCfg.introMusicId || 'tGv7CUutzqU', start: appCfg.introStartTime || 24 },
+        function inferMediaType(url) {
+            const extension = String(url || '').split('?')[0].split('.').pop().toLowerCase();
+            return /^(mp4|webm|ogv)$/.test(extension) ? 'video' : 'audio';
+        }
+
+        const introSource = appCfg.introMusicSource || 'youtube';
+        const introTrack = {
+            trackId: 'intro',
+            id: appCfg.introMusicId || '',
+            name: appCfg.introTitle || 'DITZZ SPECIAL THEME',
+            source: introSource === 'file' ? 'file' : 'admin',
+            mediaType: introSource === 'file' ? appCfg.introMediaType || inferMediaType(appCfg.introMediaUrl || appCfg.introMusicUrl) : 'youtube',
+            url: appCfg.introMediaUrl || (introSource === 'file' ? appCfg.introMusicUrl : ''),
+            start: Number(appCfg.introStartTime) || 0
+        };
+        const fallbackTracks = [
             { name: 'CYBERPUNK NEON DRIVE', id: '4xDzrJKXOOY', start: 0 },
             { name: 'SYNTHWAVE HACKER PROTOCOL', id: '79B5wX0hZ-0', start: 0 },
-            { name: 'DARK AMBIENT MAINFRAME', id: 'kJQP7kiw5Fk', start: 0 },
-            { name: 'NEO TOKYO DRIFT PHONK', id: 'f-tF_GqY7lI', start: 0 }
+            { name: 'DARK AMBIENT MAINFRAME', id: 'kJQP7kiw5Fk', start: 0 }
         ];
-
-        let activeTrackId = localStorage.getItem('ditzz_selected_track_id') || defaultTracks[0].id;
-        let activeTrackName = localStorage.getItem('ditzz_selected_track_name') || defaultTracks[0].name;
-        const hasSavedAudioTime = localStorage.getItem('ditzz_audio_time') !== null;
-        const savedAudioTime = Number(localStorage.getItem('ditzz_audio_time'));
-        const savedAudioAt = Number(localStorage.getItem('ditzz_audio_last_saved'));
-        const savedAudioPlaying = localStorage.getItem('ditzz_audio_playing') !== 'false';
+        const configuredTracks = Array.isArray(appCfg.tracks) ? appCfg.tracks : fallbackTracks;
+        const defaultTracks = [
+            introTrack,
+            ...configuredTracks.filter(track => track && typeof track === 'object').map((track, index) => {
+                const source = track.source === 'file' || (track.url && track.mediaType !== 'youtube') ? 'file' : 'admin';
+                return {
+                    trackId: String(track.trackId || track.id || `track-${index}`),
+                    id: track.id || '',
+                    name: String(track.name || `TRACK ${index + 1}`),
+                    source,
+                    mediaType: source === 'file' ? track.mediaType || inferMediaType(track.url) : 'youtube',
+                    url: track.url || '',
+                    start: Number(track.start) || 0
+                };
+            })
+        ];
+        const savedTrackId = sessionStorage.getItem('ditzz_selected_track_id');
+        const initialTrack = defaultTracks.find(track => track.trackId === savedTrackId || track.id === savedTrackId)
+            || introTrack;
+        const trackKey = track => String(track.trackId || track.id || '');
+        let activeTrack = initialTrack;
+        let activeTrackId = trackKey(activeTrack);
+        let activeTrackName = sessionStorage.getItem('ditzz_selected_track_name') || activeTrack.name;
+        const hasSavedAudioTime = sessionStorage.getItem('ditzz_audio_time') !== null;
+        const savedAudioTime = Number(sessionStorage.getItem('ditzz_audio_time'));
+        const savedAudioAt = Number(sessionStorage.getItem('ditzz_audio_last_saved'));
+        const savedAudioPlaying = sessionStorage.getItem('ditzz_audio_playing') !== 'false';
         const savedAudioAge = Date.now() - savedAudioAt;
         const storedPosition = hasSavedAudioTime && Number.isFinite(savedAudioTime) && savedAudioTime >= 0
             ? savedAudioTime + (savedAudioPlaying && savedAudioAge >= 0 && savedAudioAge < 120000 ? Math.floor(savedAudioAge / 1000) : 0)
             : null;
-        let activeStartSec = storedPosition === null
-            ? ((activeTrackId === (appCfg.introMusicId || 'tGv7CUutzqU')) ? (appCfg.introStartTime || 24) : 0)
-            : storedPosition;
-        const storedVolume = localStorage.getItem('ditzz_volume');
+        let activeStartSec = storedPosition === null ? activeTrack.start || 0 : storedPosition;
+        const storedVolume = sessionStorage.getItem('ditzz_volume');
         let activeVolume = storedVolume === null ? 100 : Math.min(100, Math.max(0, parseInt(storedVolume, 10) || 0));
         let isPlaying = savedAudioPlaying;
+        let musicPlaybackMode = sessionStorage.getItem('ditzz_music_playback_mode') === 'advance' ? 'advance' : 'repeat';
         let audioPositionAnchorSec = activeStartSec;
         let audioPositionAnchorMs = Date.now();
         let isMuted = false;
@@ -1131,6 +1184,7 @@
         const hudTitle = document.getElementById('hudTrackTitle');
         const hudStatus = document.getElementById('hudStatus');
         const hudPlayBtn = document.getElementById('hudPlayBtn');
+        const musicModeBtn = document.getElementById('musicModeBtn');
         const hudVolSlider = document.getElementById('hudVolSlider');
         const hudVolLabel = document.getElementById('hudVolLabel');
         const hudVolIcon = document.getElementById('hudVolIcon');
@@ -1139,6 +1193,18 @@
         const ytMonitor = document.getElementById('ytMonitor');
         const toggleMonitorBtn = document.getElementById('toggleMonitorBtn');
         const cyberYtIframe = document.getElementById('cyberYtIframe');
+        const frameContainer = document.getElementById('ytFrameContainer');
+        const nativeAudio = document.createElement('audio');
+        const nativeVideo = document.createElement('video');
+        nativeAudio.preload = 'metadata';
+        nativeVideo.preload = 'metadata';
+        nativeAudio.loop = true;
+        nativeVideo.loop = true;
+        nativeVideo.playsInline = true;
+        nativeAudio.hidden = true;
+        nativeVideo.hidden = true;
+        frameContainer.append(nativeAudio, nativeVideo);
+        let activeNativeMedia = null;
         const ytDirectLink = document.getElementById('ytDirectLink');
         const searchModal = document.getElementById('ytSearchModal');
         const customYtInput = document.getElementById('customYtInput');
@@ -1146,17 +1212,48 @@
         const popoverList = document.getElementById('trackPopoverList');
 
         function getAudioPosition() {
+            if (activeNativeMedia && Number.isFinite(activeNativeMedia.currentTime)) return activeNativeMedia.currentTime;
             return audioPositionAnchorSec + (isPlaying ? Math.floor((Date.now() - audioPositionAnchorMs) / 1000) : 0);
         }
 
         function saveAudioPosition() {
-            localStorage.setItem('ditzz_audio_time', String(getAudioPosition()));
-            localStorage.setItem('ditzz_audio_last_saved', String(Date.now()));
-            localStorage.setItem('ditzz_audio_playing', String(isPlaying));
+            sessionStorage.setItem('ditzz_audio_time', String(getAudioPosition()));
+            sessionStorage.setItem('ditzz_audio_last_saved', String(Date.now()));
+            sessionStorage.setItem('ditzz_audio_playing', String(isPlaying));
+            sessionStorage.setItem('ditzz_selected_track_id', activeTrackId);
+            sessionStorage.setItem('ditzz_selected_track_name', activeTrackName);
+            sessionStorage.setItem('ditzz_selected_track_source', activeTrack.source || 'admin');
+            sessionStorage.setItem('ditzz_selected_track_url', activeTrack.url || '');
+            sessionStorage.setItem('ditzz_selected_track_media_type', activeTrack.mediaType || 'youtube');
         }
 
-        // PostMessage command to YouTube iframe
+        function updateMusicModeButton() {
+            const repeatMode = musicPlaybackMode === 'repeat';
+            musicModeBtn.innerHTML = repeatMode ? '<i class="fas fa-redo"></i>' : '<i class="fas fa-forward"></i>';
+            musicModeBtn.title = repeatMode ? 'Mode musik: ulangi lagu ini' : 'Mode musik: lanjut ke lagu berikutnya';
+            musicModeBtn.setAttribute('aria-label', musicModeBtn.title);
+        }
+
+        function playNextWebsiteTrack() {
+            const tracks = [...defaultTracks, ...visitorLocalTracks];
+            if (!tracks.length) return;
+            const currentIndex = tracks.findIndex(track => trackKey(track) === activeTrackId);
+            const nextTrack = tracks[(currentIndex + 1 + tracks.length) % tracks.length];
+            loadWebsiteTrack(nextTrack, 0, nextTrack.name, true, true);
+        }
+
         function sendYtCommand(command, arg) {
+            if (activeNativeMedia) {
+                if (command === 'playVideo') activeNativeMedia.play().catch(error => {
+                    hudStatus.textContent = 'PUTARAN DIBLOKIR BROWSER — KLIK PUTAR';
+                    console.warn('Browser did not start the selected media.', error);
+                });
+                else if (command === 'pauseVideo') activeNativeMedia.pause();
+                else if (command === 'setVolume') activeNativeMedia.volume = Math.min(1, Math.max(0, Number(arg) / 100));
+                else if (command === 'mute') activeNativeMedia.muted = true;
+                else if (command === 'unMute') activeNativeMedia.muted = false;
+                return;
+            }
             if (cyberYtIframe && cyberYtIframe.contentWindow) {
                 cyberYtIframe.contentWindow.postMessage(JSON.stringify({
                     event: 'command',
@@ -1166,53 +1263,149 @@
             }
         }
 
+        const visitorLocalTracks = [];
+        let localTrackSequence = 0;
         let trackLoadSequence = 0;
-        // Load YouTube Track into visible monitor iframe
-        function loadWebsiteTrack(id, startSec, name, shouldPlay = true) {
+        let youtubeAutoAdvanceArmed = false;
+        function recordMusicSelection(track) {
+            const source = track.source === 'local' ? 'local'
+                : track.source === 'visitor' ? 'visitor'
+                    : 'admin';
+            const selection = {
+                trackId: source === 'local' ? null : track.trackId || track.id,
+                name: track.name,
+                source,
+                mediaType: track.mediaType
+            };
+            window.DitzzData.recordVisitorEvent(
+                'music_selection',
+                sessionStorage.getItem('ditzz_visitor_name') || 'Pengunjung',
+                undefined,
+                undefined,
+                selection
+            ).catch(error => {
+                console.error('Visitor music choice could not be saved.', error);
+                hudStatus.textContent = 'PILIHAN DIPUTAR — GAGAL DISIMPAN KE DATABASE';
+            });
+        }
+
+        function loadWebsiteTrack(trackOrId, startSec, name, shouldPlay = true, shouldRecord = false) {
             if (window.ditzzMusicUnavailable) shouldPlay = false;
             const loadSequence = ++trackLoadSequence;
-            activeTrackId = id;
-            activeStartSec = startSec || 0;
+            youtubeAutoAdvanceArmed = false;
+            const track = typeof trackOrId === 'object'
+                ? trackOrId
+                : { trackId: String(trackOrId), id: String(trackOrId), name, source: 'visitor', mediaType: 'youtube' };
+            activeTrack = track;
+            activeTrackId = trackKey(track);
+            activeStartSec = Number(startSec) || 0;
             isPlaying = shouldPlay;
             audioPositionAnchorSec = activeStartSec;
             audioPositionAnchorMs = Date.now();
-            if (name) activeTrackName = name;
+            activeTrackName = name || track.name || 'MEDIA TANPA JUDUL';
 
             hudTitle.textContent = activeTrackName;
             hudStatus.textContent = window.ditzzMusicUnavailable ? 'MUSIC OFFLINE BY ADMIN' : (isPlaying ? `FREQUENCY ${activeVolume}% // ONLINE` : 'PAUSED');
             hudVolSlider.value = activeVolume;
             hudVolLabel.textContent = activeVolume + '%';
 
-            localStorage.setItem('ditzz_selected_track_id', id);
-            localStorage.setItem('ditzz_selected_track_name', activeTrackName);
-            localStorage.setItem('ditzz_volume', activeVolume);
+            sessionStorage.setItem('ditzz_volume', activeVolume);
             saveAudioPosition();
 
-            if (ytDirectLink) ytDirectLink.href = `https://youtu.be/${id}${activeStartSec ? '?t=' + activeStartSec : ''}`;
-
-            // Load iframe with autoplay, loop, controls, enablejsapi
-            cyberYtIframe.onload = () => {
-                [400, 1000, 1800].forEach(delay => {
+            const isFileMedia = track.source === 'file' || track.source === 'local';
+            if (activeNativeMedia) {
+                activeNativeMedia.pause();
+                activeNativeMedia.hidden = true;
+                activeNativeMedia.removeAttribute('src');
+                activeNativeMedia.load();
+            }
+            activeNativeMedia = null;
+            if (isFileMedia) {
+                const media = track.mediaType === 'video' ? nativeVideo : nativeAudio;
+                nativeAudio.hidden = media !== nativeAudio;
+                nativeVideo.hidden = media !== nativeVideo;
+                cyberYtIframe.hidden = true;
+                activeNativeMedia = media;
+                media.volume = activeVolume / 100;
+                media.muted = false;
+                media.loop = musicPlaybackMode === 'repeat';
+                media.src = track.url;
+                media.onloadedmetadata = () => {
+                    if (loadSequence !== trackLoadSequence) return;
+                    if (Number.isFinite(media.duration)) media.currentTime = Math.min(activeStartSec, Math.max(0, media.duration - 0.1));
+                    if (isPlaying) media.play().catch(error => {
+                        isPlaying = false;
+                        hudPlayer.classList.add('paused');
+                        hudPlayBtn.innerHTML = '<i class="fas fa-play"></i>';
+                        hudStatus.textContent = 'PUTARAN DIBLOKIR BROWSER — KLIK PUTAR';
+                        console.warn('Browser did not start the selected media.', error);
+                    });
+                };
+                media.onerror = () => {
+                    if (loadSequence === trackLoadSequence) hudStatus.textContent = 'FILE TIDAK DAPAT DIMUAT';
+                };
+                media.onplay = () => {
+                    if (loadSequence !== trackLoadSequence) return;
+                    isPlaying = true;
+                    audioPositionAnchorMs = Date.now();
+                    hudPlayer.classList.remove('paused');
+                    hudPlayBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                };
+                media.onpause = () => {
+                    if (loadSequence !== trackLoadSequence) return;
+                    isPlaying = false;
+                    audioPositionAnchorSec = media.currentTime || activeStartSec;
+                    audioPositionAnchorMs = Date.now();
+                    hudPlayer.classList.add('paused');
+                    hudPlayBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    saveAudioPosition();
+                };
+                media.onended = () => {
+                    if (loadSequence === trackLoadSequence && musicPlaybackMode === 'advance') playNextWebsiteTrack();
+                };
+                media.load();
+                if (ytDirectLink) {
+                    ytDirectLink.href = track.url;
+                    ytDirectLink.title = 'Buka file media';
+                }
+            } else {
+                nativeAudio.hidden = true;
+                nativeVideo.hidden = true;
+                cyberYtIframe.hidden = false;
+                const id = track.id;
+                if (ytDirectLink) {
+                    ytDirectLink.href = `https://youtu.be/${id}${activeStartSec ? '?t=' + activeStartSec : ''}`;
+                    ytDirectLink.title = 'Buka di YouTube';
+                }
+                cyberYtIframe.onload = () => {
+                    sendYtCommand('addEventListener', 'onStateChange');
+                    [400, 1000, 1800].forEach(delay => {
+                        window.setTimeout(() => {
+                            if (loadSequence !== trackLoadSequence) return;
+                            sendYtCommand('setVolume', activeVolume);
+                            sendYtCommand(isPlaying ? 'unMute' : 'mute');
+                            sendYtCommand(isPlaying ? 'playVideo' : 'pauseVideo');
+                        }, delay);
+                    });
                     window.setTimeout(() => {
-                        if (loadSequence !== trackLoadSequence) return;
-                        sendYtCommand('setVolume', activeVolume);
-                        sendYtCommand(isPlaying ? 'unMute' : 'mute');
-                        sendYtCommand(isPlaying ? 'playVideo' : 'pauseVideo');
-                    }, delay);
-                });
-            };
-            cyberYtIframe.onerror = () => {
-                if (loadSequence === trackLoadSequence) hudStatus.textContent = 'AUDIO TIDAK DAPAT DIMUAT — COBA BUKA DI YOUTUBE';
-            };
-            cyberYtIframe.src = `https://www.youtube.com/embed/${id}?autoplay=${isPlaying ? 1 : 0}&start=${activeStartSec}&loop=1&playlist=${id}&controls=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}&playsinline=1&volume=${activeVolume}`;
+                        if (loadSequence === trackLoadSequence) youtubeAutoAdvanceArmed = true;
+                    }, 1800);
+                };
+                cyberYtIframe.onerror = () => {
+                    if (loadSequence === trackLoadSequence) hudStatus.textContent = 'AUDIO TIDAK DAPAT DIMUAT — COBA LAGI';
+                };
+                const loop = musicPlaybackMode === 'repeat' ? 1 : 0;
+                cyberYtIframe.src = `https://www.youtube.com/embed/${id}?autoplay=${isPlaying ? 1 : 0}&start=${activeStartSec}&loop=${loop}&playlist=${id}&controls=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}&playsinline=1&volume=${activeVolume}`;
+            }
             hudPlayer.classList.toggle('paused', !isPlaying);
             hudPlayBtn.innerHTML = isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
 
             renderPopoverTracks();
+            if (shouldRecord) recordMusicSelection(track);
         }
 
         // Initial Boot of Audio
-        loadWebsiteTrack(activeTrackId, activeStartSec, activeTrackName, isPlaying);
+        loadWebsiteTrack(activeTrack, activeStartSec, activeTrackName, isPlaying);
         window.setTimeout(() => {
             if (window.ditzzMusicUnavailable) return;
             ytMonitor.classList.add('minimized');
@@ -1220,6 +1413,20 @@
         }, 6000);
         window.setInterval(saveAudioPosition, 1000);
         window.addEventListener('pagehide', saveAudioPosition);
+        window.addEventListener('message', event => {
+            if (event.origin !== 'https://www.youtube.com' || event.source !== cyberYtIframe.contentWindow) return;
+            let data;
+            try {
+                data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            } catch (error) {
+                return;
+            }
+            const ended = (data && data.event === 'onStateChange' && Number(data.info) === 0)
+                || (data && data.event === 'infoDelivery' && data.info && Number(data.info.playerState) === 0);
+            if (!ended || !youtubeAutoAdvanceArmed || musicPlaybackMode !== 'advance' || !isPlaying) return;
+            youtubeAutoAdvanceArmed = false;
+            playNextWebsiteTrack();
+        });
 
         // Global user gesture listener to ensure unmuted audio if browser initially paused
         let userInteracted = false;
@@ -1298,13 +1505,22 @@
             saveAudioPosition();
         });
         hudPlayBtn.addEventListener('click', togglePlay);
+        musicModeBtn.addEventListener('click', () => {
+            const position = getAudioPosition();
+            const shouldPlay = isPlaying;
+            musicPlaybackMode = musicPlaybackMode === 'repeat' ? 'advance' : 'repeat';
+            sessionStorage.setItem('ditzz_music_playback_mode', musicPlaybackMode);
+            updateMusicModeButton();
+            loadWebsiteTrack(activeTrack, position, activeTrackName, shouldPlay);
+        });
+        updateMusicModeButton();
         document.getElementById('hudAudioToggle').addEventListener('click', togglePlay);
 
         // Volume slider handler
         hudVolSlider.addEventListener('input', (e) => {
             activeVolume = parseInt(e.target.value);
             hudVolLabel.textContent = activeVolume + '%';
-            localStorage.setItem('ditzz_volume', activeVolume);
+            sessionStorage.setItem('ditzz_volume', activeVolume);
             sendYtCommand('setVolume', activeVolume);
             if (activeVolume === 0) {
                 sendYtCommand('mute');
@@ -1343,12 +1559,14 @@
         function renderPopoverTracks() {
             if (!popoverList) return;
             popoverList.innerHTML = '';
-            defaultTracks.forEach(t => {
-                const item = document.createElement('div');
-                item.className = 'tp-item' + (t.id === activeTrackId ? ' active' : '');
-                item.innerHTML = `<i class="fas fa-play" style="font-size:0.65rem; margin-right:6px;"></i> ${t.name}`;
+            [...defaultTracks, ...visitorLocalTracks].forEach(track => {
+                const item = document.createElement('button');
+                item.className = 'tp-item';
+                item.type = 'button';
+                item.textContent = `${track.name}${track.mediaType === 'video' ? ' · VIDEO' : ''}${track.source === 'local' ? ' · PERANGKAT' : ''}`;
+                item.classList.toggle('active', trackKey(track) === activeTrackId);
                 item.addEventListener('click', () => {
-                    loadWebsiteTrack(t.id, t.start || 0, t.name);
+                    loadWebsiteTrack(track, track.start || 0, track.name, true, true);
                     trackPopover.classList.remove('open');
                 });
                 popoverList.appendChild(item);
@@ -1371,20 +1589,68 @@
         document.getElementById('loadCustomYtBtn').addEventListener('click', () => {
             const val = customYtInput.value.trim();
             if (val) {
-                const parsed = parseYouTubeUrl(val);
-                loadWebsiteTrack(parsed.id, parsed.start, 'CUSTOM YOUTUBE FREQUENCY');
-                searchModal.classList.remove('open');
+                try {
+                    const parsed = parseYouTubeUrl(val);
+                    loadWebsiteTrack({
+                        trackId: parsed.id,
+                        id: parsed.id,
+                        name: 'CUSTOM YOUTUBE FREQUENCY',
+                        source: 'visitor',
+                        mediaType: 'youtube'
+                    }, parsed.start, 'CUSTOM YOUTUBE FREQUENCY', true, true);
+                    searchModal.classList.remove('open');
+                } catch (error) {
+                    hudStatus.textContent = error.message || 'URL YOUTUBE TIDAK VALID';
+                }
             }
         });
 
         document.querySelectorAll('.yts-preset-item').forEach(item => {
             item.addEventListener('click', () => {
-                const url = item.dataset.url;
-                const title = item.dataset.title;
-                const parsed = parseYouTubeUrl(url);
-                loadWebsiteTrack(parsed.id, parsed.start, title);
-                searchModal.classList.remove('open');
+                try {
+                    const parsed = parseYouTubeUrl(item.dataset.url);
+                    loadWebsiteTrack({
+                        trackId: parsed.id,
+                        id: parsed.id,
+                        name: item.dataset.title,
+                        source: 'visitor',
+                        mediaType: 'youtube'
+                    }, parsed.start, item.dataset.title, true, true);
+                    searchModal.classList.remove('open');
+                } catch (error) {
+                    hudStatus.textContent = error.message || 'URL YOUTUBE TIDAK VALID';
+                }
             });
+        });
+        document.getElementById('visitorLocalMediaInput').addEventListener('change', event => {
+            const files = Array.from(event.target.files || []);
+            const allowedTypes = new Set([
+                'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/aac',
+                'video/mp4', 'video/webm', 'video/ogg'
+            ]);
+            const addedTracks = [];
+            for (const file of files) {
+                if (!allowedTypes.has(file.type)) {
+                    hudStatus.textContent = `FORMAT TIDAK DIDUKUNG: ${file.name}`;
+                    continue;
+                }
+                const track = {
+                    trackId: `local:${Date.now()}:${++localTrackSequence}`,
+                    name: file.name.slice(0, 120),
+                    source: 'local',
+                    mediaType: file.type.startsWith('video/') ? 'video' : 'audio',
+                    url: URL.createObjectURL(file)
+                };
+                visitorLocalTracks.push(track);
+                addedTracks.push(track);
+            }
+            event.target.value = '';
+            if (!addedTracks.length) return;
+            renderPopoverTracks();
+            const selectedTrack = addedTracks[addedTracks.length - 1];
+            loadWebsiteTrack(selectedTrack, 0, selectedTrack.name, true, true);
+            searchModal.classList.remove('open');
+            hudStatus.textContent = 'FILE LOKAL — PILIHAN SESI DISIMPAN';
         });
     </script>
 </body>

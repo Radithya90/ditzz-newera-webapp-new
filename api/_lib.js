@@ -1,4 +1,9 @@
 const usernamePattern = /^[a-zA-Z0-9._-]{3,32}$/;
+const accountRoles = new Set(['admin', 'security', 'reseller', 'partner']);
+const editablePageIds = new Set([
+    'site-status', 'music', 'content', 'products', 'orders', 'messages',
+    'announcements', 'visitor-activity', 'settings', 'blocked-visitors'
+]);
 const { isIP } = require('node:net');
 
 function maskClientIp(value) {
@@ -114,7 +119,8 @@ function normalizeProfile(profile) {
         username: profile.username,
         displayName: profile.display_name,
         role: profile.role,
-        profilePhoto: profile.avatar_url || ''
+        profilePhoto: profile.avatar_url || '',
+        editablePages: Array.isArray(profile.editable_pages) ? profile.editable_pages : []
     };
 }
 
@@ -138,10 +144,10 @@ async function requireAdmin(req) {
     }
     const user = await response.json();
     const profiles = await supabaseServiceRequest(
-        `/rest/v1/admin_profiles?select=user_id,username,display_name,role,avatar_url&user_id=eq.${encodeURIComponent(user.id)}&limit=1`,
+        `/rest/v1/admin_profiles?select=user_id,username,display_name,role,avatar_url,editable_pages&user_id=eq.${encodeURIComponent(user.id)}&limit=1`,
         { method: 'GET' }
     );
-    if (!Array.isArray(profiles) || !profiles[0] || !['admin', 'security'].includes(profiles[0].role)) {
+    if (!Array.isArray(profiles) || !profiles[0] || !accountRoles.has(profiles[0].role)) {
         const error = new Error('CPanel administrator access is required.');
         error.statusCode = 403;
         throw error;
@@ -149,9 +155,20 @@ async function requireAdmin(req) {
     return { token: token[1], user, profile: profiles[0] };
 }
 
+async function requirePagePermission(req, pageId) {
+    const authorization = await requireAdmin(req);
+    if (authorization.profile.role !== 'admin'
+        && !authorization.profile.editable_pages.includes(pageId)) {
+        const error = new Error('You do not have edit access to this CPanel page.');
+        error.statusCode = 403;
+        throw error;
+    }
+    return authorization;
+}
+
 async function getAdminProfiles() {
     return supabaseServiceRequest(
-        '/rest/v1/admin_profiles?select=user_id,username,display_name,role,avatar_url&order=created_at.asc',
+        '/rest/v1/admin_profiles?select=user_id,username,display_name,role,avatar_url,editable_pages&order=created_at.asc',
         { method: 'GET' }
     );
 }
@@ -181,11 +198,20 @@ function validateProfileInput(body, creating) {
         }
     }
     if (creating || body.role !== undefined) {
-        if (!['admin', 'security'].includes(body.role)) {
-            const error = new Error('Role must be admin or security.');
+        if (!accountRoles.has(body.role)) {
+            const error = new Error('Role must be admin, security, reseller, or partner.');
             error.statusCode = 400;
             throw error;
         }
+    }
+    if (body.editablePages !== undefined
+        && (!Array.isArray(body.editablePages)
+            || body.editablePages.length > editablePageIds.size
+            || body.editablePages.some(page => typeof page !== 'string' || !editablePageIds.has(page))
+            || new Set(body.editablePages).size !== body.editablePages.length)) {
+        const error = new Error('Editable pages contain an unsupported or duplicate page.');
+        error.statusCode = 400;
+        throw error;
     }
     if (creating && (typeof body.password !== 'string' || body.password.length < 12)) {
         const error = new Error('Password must be at least 12 characters.');
@@ -224,7 +250,9 @@ module.exports = {
     normalizeProfile,
     readBody,
     requireAdmin,
+    requirePagePermission,
     sendError,
     supabaseServiceRequest,
-    validateProfileInput
+    validateProfileInput,
+    editablePageIds
 };

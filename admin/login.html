@@ -1273,7 +1273,10 @@
                     // Success
                     loginBtn.classList.add('success');
                     loginBtn.textContent = '[ ACCESS GRANTED ]';
-                    statusMsg.textContent = `> ACCESS GRANTED - WELCOME, ${(matchedUser.role || 'admin').toUpperCase()}`;
+                    const roleLabel = matchedUser.role === 'admin'
+                        ? 'ADMIN-DEVELOPER-DITZZ'
+                        : (matchedUser.role || 'admin').toUpperCase();
+                    statusMsg.textContent = `> ACCESS GRANTED - WELCOME, ${roleLabel}`;
                     statusMsg.className = 'status-message success';
 
                     accessFlash.className = 'access-flash granted';

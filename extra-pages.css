@@ -93,6 +93,7 @@ body.extra-site::after {
 .extra-card:hover { transform: translateY(-4px); border-color: rgba(0, 255, 136, .58); box-shadow: 0 8px 26px rgba(0, 255, 136, .09); }
 .extra-card h3 { margin: 0 0 7px; color: #e7f0f5; font: 700 .88rem Orbitron, sans-serif; }
 .extra-card p { margin: 0; color: var(--extra-muted); }
+.extra-managed-media { display: block; width: 100%; max-height: 360px; margin-bottom: 12px; border: 1px solid rgba(0, 229, 255, .18); object-fit: contain; background: #05080c; }
 .extra-link, .extra-button {
     display: inline-flex;
     min-height: 42px;
