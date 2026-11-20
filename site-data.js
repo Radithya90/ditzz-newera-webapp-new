@@ -31,7 +31,7 @@
                 : status === 'loading'
                     ? 'MENGHUBUNGKAN KE SUPABASE...'
                     : status === 'unconfigured'
-                        ? 'BELUM TERHUBUNG — atur URL dan anon key Supabase di Vercel.'
+                        ? 'BELUM TERHUBUNG — atur variabel Supabase di Cloudflare Pages.'
                         : `GANGGUAN DATABASE — ${state.error ? state.error.message : status}`;
         }
         document.dispatchEvent(new CustomEvent('ditzz:database-status', {
@@ -80,7 +80,7 @@
     }
 
     async function refresh() {
-        if (!state.client) throw new Error('Supabase belum terhubung. Periksa konfigurasi Vercel.');
+        if (!state.client) throw new Error('Supabase belum terhubung. Periksa konfigurasi Cloudflare Pages.');
         const row = await readRemoteState();
         cacheRemoteState(row, true);
         return row;
@@ -159,7 +159,7 @@
     async function requireClient() {
         await ready;
         if (!state.client) {
-            throw state.error || new Error('Supabase belum dikonfigurasi. Tambahkan URL dan anon key di Vercel.');
+            throw state.error || new Error('Supabase belum dikonfigurasi. Tambahkan variabelnya di Cloudflare Pages.');
         }
         return state.client;
     }
