@@ -28,7 +28,7 @@ The username is used to derive the internal Auth email. Passwords and Admin role
 
 ## 2. Deploy to Cloudflare Pages
 
-1. In Cloudflare, create a **Pages** project and connect the GitHub repository `Radithya90/UPDATE-NEW-WEBSITE-DELABELS-NEW-WEB` on the `main` branch.
+1. In Cloudflare, create a **Pages** project named `DITZZ-NEWERA-WEBAPP` (Cloudflare hostname slug: `ditzz-newera-webapp`) and connect the GitHub repository `Radithya90/UPDATE-NEW-WEBSITE-DELABELS-NEW-WEB` on the `main` branch.
 2. Set the build command to `npm run build` and the build output directory to `dist`. The project has no framework preset.
 3. In **Settings > Variables and Secrets**, add the following for Production and Preview as needed:
 
